@@ -1488,12 +1488,12 @@ function buildGrid(){
     el.innerHTML='<div class="cov"></div><div class="crop"></div><div class="stage-bar"><i></i></div><div class="devices"></div><div class="netdot"></div><div class="badge-ripe" title="点击收获">🧺</div><div class="pestmark"></div><div class="crack"></div>';
     farm.appendChild(el); cellEls.push(el);
   }
-  farm.addEventListener('click',e=>{
+  farm.onclick = e=>{
     const el=e.target.closest('.cell'); if(!el) return;
     const id=+el.dataset.id;
     if(e.target.closest('.badge-ripe')){ harvestCell(id); return; }
     onCellClick(id);
-  });
+  };
 }
 function buildTools(){
   const g=$('toolsGrid'); g.innerHTML='';
@@ -1503,7 +1503,7 @@ function buildTools(){
     b.innerHTML='<span class="em">'+t.emoji+'</span>'+t.name;
     g.appendChild(b);
   }
-  g.addEventListener('click',e=>{ const b=e.target.closest('.tool-btn'); if(!b) return; selectTool(b.dataset.id); });
+  g.onclick = e=>{ const b=e.target.closest('.tool-btn'); if(!b) return; selectTool(b.dataset.id); };
 }
 function buildStars(){
   const st=$('stars'); st.innerHTML='';
