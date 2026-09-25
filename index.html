@@ -406,6 +406,9 @@
       <span class="pill">🪙 <b id="goldTxt">60</b></span>
       <span id="marketTag" class="pill market-tag" style="display:none"></span>
       <button id="btnShop" class="btn-shop-big" title="打开农资商店（种子与物联网硬件）"><span class="em">🛒</span>商店</button>
+      <button id="btnSave" class="btn-hdr ghost" title="把当前进度保存到浏览器本地，下次打开可继续">💾 保存</button>
+      <button id="btnLoad" class="btn-hdr ghost" title="读取之前保存的进度">📂 读档</button>
+      <button id="btnNew" class="btn-hdr ghost" title="清空存档，重新开始">🆕 重开</button>
     </div>
   </header>
 
@@ -1505,6 +1508,68 @@ function buildStars(){
     s.style.animationDelay=rand(0,3)+'s'; st.appendChild(s);
   }
 }
+
+/* ======================= 存档系统 (localStorage) ======================= */
+const SAVE_KEY = 'agriIoT_save_v1';
+let autosaveTimer = null;
+
+/* 序列化当前状态：去掉运行时临时字段，存进 localStorage */
+function collectState(){
+  const s = JSON.parse(JSON.stringify(S));   // 深拷贝，避免污染运行中的状态
+  delete s._lastGold; delete s._resumeAfterShop; delete s._resumeAfterMarket;
+  delete s.running;                            // 运行状态不存档，读档后默认暂停
+  return s;
+}
+function applyState(s){
+  // 恢复状态，但重建运行时的临时字段
+  S = s;
+  S.running = false;
+  S._lastGold = null; S._resumeAfterShop = false; S._resumeAfterMarket = false;
+  S.globals = S.globals || {isDay:true,light:0,airTemp:18,airHum:50};
+  stopRun();
+}
+function saveGame(manual){
+  try{
+    const s = collectState();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+    const el = $('saveTxt'); if(el) el.textContent = '已存档 '+fmtTimeNow();
+    if(manual) toast('💾 进度已保存到本地');
+  }catch(e){ if(manual) toast('❌ 保存失败：'+e.message); }
+}
+function loadGame(manual){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw){ if(manual) toast('📂 没有找到存档'); return false; }
+    const s = JSON.parse(raw);
+    applyState(s);
+    // 重新构建所有界面
+    buildGrid(); buildTools();
+    renderShop(); renderInventory(); renderSeeds(); renderCoupons();
+    updateModeUI(); refreshSel(); refreshGold(); render(); renderTaskPanel();
+    const el = $('saveTxt'); if(el) el.textContent = '已载入存档';
+    if(manual) toast('📂 已读取上次进度（第'+S.day+'天 '+fmtClock(S.hour)+'）');
+    return true;
+  }catch(e){ if(manual) toast('❌ 读档失败：'+e.message); return false; }
+}
+function newGame(manual){
+  if(manual && !confirm('确定要清空存档并重新开始吗？当前进度会被覆盖。')) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  stopRun();
+  S = freshState('free');
+  S.globals={isDay:true,light:0,airTemp:18,airHum:50};
+  S.selSeed=null; S.selCell=null; S.sel=null; S._lastGold=null;
+  buildGrid(); buildTools(); buildStars(); initRainPool();
+  renderShop(); renderInventory(); renderSeeds(); renderCoupons();
+  updateModeUI(); refreshSel(); refreshGold(); render(); renderTaskPanel();
+  const el = $('saveTxt'); if(el) el.textContent = '本地存档';
+  if(manual) toast('🆕 已重新开始');
+}
+function fmtTimeNow(){
+  const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+
+/* ======================= 存档系统 END ======================= */
 function init(){
   S=freshState('free');
   S.globals={isDay:true,light:0,airTemp:18,airHum:50};
@@ -1513,6 +1578,12 @@ function init(){
   renderShop(); renderInventory(); renderSeeds(); renderCoupons();
   updateModeUI(); refreshSel(); refreshGold(); render(); renderTaskPanel();
   wireEvents();
+  // 存档系统：优先载入上次进度；并开启自动保存（每 5 秒）
+  if(hasSave()){
+    if(loadGame(false)){ toast('📂 已自动载入上次进度（第'+S.day+'天）'); }
+  }
+  autosaveTimer = setInterval(()=>saveGame(false), 5000);
+  window.addEventListener('beforeunload', ()=>saveGame(false));
   setTimeout(showWelcome, 500);
 }
 
@@ -1830,6 +1901,9 @@ function wireEvents(){
     };
   });
   $('btnShop').onclick=()=>openShop();
+  $('btnSave').onclick=()=>saveGame(true);
+  $('btnLoad').onclick=()=>loadGame(true);
+  $('btnNew').onclick=()=>newGame(true);
   // 隐蔽测试入口：3秒内连点顶栏金币显示5次 → 弹出金币修改框（仅作者调试用，无任何界面痕迹）
   let _gclk=0,_gtm=0;
   $('goldTxt').parentElement.addEventListener('click',()=>{
