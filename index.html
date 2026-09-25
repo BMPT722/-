@@ -92,6 +92,9 @@
   .countdown.ok{color:var(--leaf);}
   .gold-big{font-size:20px; color:#c88600; font-weight:800;}
   .tools-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:7px;}
+  .savebar{display:flex; gap:6px; margin-top:8px;}
+  .savebar button{flex:1; background:#fff; color:var(--leaf-deep); border:1.5px solid var(--line); padding:8px 4px; border-radius:999px; font-size:12px; font-weight:700; transition:.12s;}
+  .savebar button:hover{border-color:var(--leaf);}
   .sel-hint{font-size:11px;color:var(--leaf-deep);background:#eaf5ec;border:1px dashed var(--leaf);border-radius:8px;padding:6px 8px;line-height:1.45;min-height:32px;}
   .tool-btn{display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 2px; border-radius:var(--radius-md); background:#fff; border:2px solid var(--line); font-size:12px; font-weight:700; line-height:1.15; transition:.12s; text-align:center;}
   .tool-btn .em{font-size:22px;}
@@ -406,9 +409,6 @@
       <span class="pill">🪙 <b id="goldTxt">60</b></span>
       <span id="marketTag" class="pill market-tag" style="display:none"></span>
       <button id="btnShop" class="btn-shop-big" title="打开农资商店（种子与物联网硬件）"><span class="em">🛒</span>商店</button>
-      <button id="btnSave" class="btn-hdr ghost" title="把当前进度保存到浏览器本地，下次打开可继续">💾 保存</button>
-      <button id="btnLoad" class="btn-hdr ghost" title="读取之前保存的进度">📂 读档</button>
-      <button id="btnNew" class="btn-hdr ghost" title="清空存档，重新开始">🆕 重开</button>
     </div>
   </header>
 
@@ -421,6 +421,11 @@
         <div class="row" id="cdRow" style="display:none"><span class="lbl">倒计时</span><span class="val countdown ok" id="cdTxt">05:00</span></div>
         <div class="row"><span class="lbl">预估得分</span><span class="val" id="scoreVal">0</span></div>
       </div>
+    </div>
+    <div class="savebar">
+      <button id="btnSave" title="把当前进度保存到浏览器本地，下次打开可继续">💾 保存</button>
+      <button id="btnLoad" title="读取之前保存的进度">📂 读档</button>
+      <button id="btnNew" title="清空存档，重新开始">🆕 重开</button>
     </div>
     <div class="section-title">🧰 基础手动工具（无限免费）</div>
     <div class="tools-grid" id="toolsGrid"></div>
@@ -1518,11 +1523,13 @@ function collectState(){
   const s = JSON.parse(JSON.stringify(S));   // 深拷贝，避免污染运行中的状态
   delete s._lastGold; delete s._resumeAfterShop; delete s._resumeAfterMarket;
   delete s.running;                            // 运行状态不存档，读档后默认暂停
+  s.questsClaimed = questClaimedIds();         // 一并存档任务完成/领取状态
   return s;
 }
 function applyState(s){
   // 恢复状态，但重建运行时的临时字段
   S = s;
+  restoreQuestClaimed(s.questsClaimed);        // 恢复任务完成/领取状态
   S.running = false;
   S._lastGold = null; S._resumeAfterShop = false; S._resumeAfterMarket = false;
   S.globals = S.globals || {isDay:true,light:0,airTemp:18,airHum:50};
@@ -1556,6 +1563,7 @@ function newGame(manual){
   try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
   stopRun();
   S = freshState('free');
+  restoreQuestClaimed([]);                     // 重开时清空任务完成状态
   S.globals={isDay:true,light:0,airTemp:18,airHum:50};
   S.selSeed=null; S.selCell=null; S.sel=null; S._lastGold=null;
   buildGrid(); buildTools(); buildStars(); initRainPool();
@@ -1568,6 +1576,12 @@ function fmtTimeNow(){
   const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
 }
 function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+function questClaimedIds(){ return QUESTS.filter(q=>q.claimed).map(q=>q.id); }
+function restoreQuestClaimed(ids){
+  for(const q of QUESTS){ q.claimed=false; q._notified=false; }
+  for(const id of (ids||[])){ const q=QUESTS.find(x=>x.id===id); if(q){ q.claimed=true; q._notified=true; } }
+  questSnap='';
+}
 
 /* ======================= 存档系统 END ======================= */
 function init(){
