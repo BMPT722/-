@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智慧农业物联网仿真教学平台</title>
+<style>
+  :root{
+    --sky-day-top:#6fc3f0; --sky-day-bot:#e6f7ff;
+    --sky-night-top:#16264a; --sky-night-bot:#2f4b75;
+    --soil-dry:#c99b6e; --soil-mid:#a06f3f; --soil-wet:#6b4527;
+    --grass:#58b368; --leaf:#3e9c50; --leaf-deep:#2f7d3e;
+    --sun:#ffc94d; --yellow:#ffd66b;
+    --water:#4aa3df; --water-deep:#2f7fb8;
+    --danger:#e85d5d; --pest:#a66bc0; --heat:#f0793d;
+    --card:#fffdf6; --ink:#3a3530; --ink-soft:#7a7266;
+    --line:#eadfc8; --chip:#f6efe0;
+    --wifi:#3aa7e0; --g5:#e07a3a;
+    --radius-lg:20px; --radius-md:14px; --radius-sm:9px;
+    --shadow:0 6px 20px rgba(90,70,30,.12);
+    --shadow-pop:0 14px 40px rgba(40,30,10,.22);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Yuanti SC","YouYuan","PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+    color:var(--ink); background:#f3eddf;
+    display:grid; grid-template-rows:58px 1fr; grid-template-columns:232px 1fr;
+    grid-template-areas:"header header" "left scene";
+    height:100vh; overflow:hidden; user-select:none;
+  }
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  input,select{font-family:inherit;}
+
+  /* ============ 顶栏 ============ */
+  header{
+    grid-area:header; display:flex; align-items:center; gap:14px; padding:0 16px;
+    background:linear-gradient(90deg,#3f8f4f,#58b368 45%,#6fc3f0);
+    color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:30;
+  }
+  .logo{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:.5px; white-space:nowrap;}
+  .logo .mark{font-size:26px; filter:drop-shadow(0 2px 2px rgba(0,0,0,.2));}
+  .logo small{display:block; font-size:11px; font-weight:400; opacity:.92; letter-spacing:1px;}
+  .hdr-mid{display:flex; align-items:center; gap:8px; flex:1; justify-content:center; flex-wrap:wrap;}
+  .hdr-right{display:flex; align-items:center; gap:10px; white-space:nowrap;}
+  .pill{background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff; padding:6px 12px; border-radius:999px; font-size:13px; display:flex; align-items:center; gap:6px;}
+  .pill.market-tag{background:linear-gradient(135deg,#e04b2f,#ff8a3d); border-color:#ffd0b8; color:#fff; font-weight:800; box-shadow:0 2px 10px rgba(224,75,47,.5); animation:shopGlow 1.6s ease-in-out infinite;}
+  .shop-item .price.sale{color:#c0b8a6;}
+  .shop-item .price.sale s{font-weight:400; margin-right:4px;}
+  .shop-item .price.sale .now{color:#e04b2f; font-weight:800; font-size:14px;}
+  .sale-banner{margin:2px 0 8px;background:linear-gradient(135deg,#ffe3d3,#fff3e8);border:1.5px solid #e04b2f;color:#b23b2b;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;text-align:center;}
+  .pill b{font-size:14px;}
+  .mode-toggle{display:flex; background:rgba(0,0,0,.18); border-radius:999px; padding:3px; gap:2px;}
+  .mode-toggle button{color:#fff; padding:6px 14px; border-radius:999px; font-size:13px; opacity:.75; transition:.15s;}
+  .mode-toggle button.on{opacity:1; background:#fff; color:#3f8f4f; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.18);}
+  .btn-hdr{background:#fff; color:#3f8f4f; padding:7px 14px; border-radius:999px; font-size:13px; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.15); transition:.15s;}
+  .btn-hdr:hover{transform:translateY(-1px);}
+  .btn-hdr.primary{background:var(--sun); color:#6b4a00;}
+  .btn-hdr.ghost{background:rgba(255,255,255,.2); color:#fff; border:1px solid rgba(255,255,255,.4);}
+  .btn-shop-big{
+    display:flex; align-items:center; gap:7px;
+    background:linear-gradient(135deg,#ffb347,#ff942e); color:#5c3d00;
+    font-weight:800; font-size:15px; padding:9px 20px; border-radius:14px;
+    border:2px solid rgba(255,255,255,.75);
+    box-shadow:0 3px 12px rgba(255,150,40,.45);
+    transition:.15s; animation:shopGlow 2.8s ease-in-out infinite;
+  }
+  .btn-shop-big .em{font-size:19px; line-height:1;}
+  .btn-shop-big:hover{transform:translateY(-2px);}
+  .btn-shop-big:active{transform:translateY(0);}
+  @keyframes shopGlow{0%,100%{box-shadow:0 3px 12px rgba(255,150,40,.35);}50%{box-shadow:0 3px 22px rgba(255,170,60,.9);}}
+
+  /* ===== 速度控制 ===== */
+  .speed-toggle{display:flex; background:rgba(0,0,0,.18); border-radius:999px; padding:3px; gap:2px;}
+  .speed-toggle button{color:#fff; padding:5px 10px; border-radius:999px; font-size:12px; opacity:.7; transition:.15s;}
+  .speed-toggle button.on{opacity:1; background:#fff; color:#3f8f4f; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.18);}
+  .speed-toggle button.lock{opacity:.3;}
+
+  /* ============ 左侧工具栏 ============ */
+  aside#left{
+    grid-area:left; background:var(--card); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; overflow-y:auto; padding:12px; gap:12px;
+  }
+  .section-title{display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--ink-soft); letter-spacing:1px;}
+  .section-title::after{content:""; flex:1; height:1px; background:var(--line);}
+  .mode-card{background:linear-gradient(135deg,#fff7e0,#fff); border:1px solid var(--line); border-radius:var(--radius-md); padding:11px 12px; box-shadow:var(--shadow);}
+  .mode-card .row{display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-top:4px;}
+  .mode-card .row:first-child{margin-top:0;}
+  .mode-card .lbl{color:var(--ink-soft);}
+  .mode-card .val{font-weight:700;}
+  .countdown{font-variant-numeric:tabular-nums; font-size:16px; color:var(--danger);}
+  .countdown.ok{color:var(--leaf);}
+  .gold-big{font-size:20px; color:#c88600; font-weight:800;}
+  .tools-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:7px;}
+  .sel-hint{font-size:11px;color:var(--leaf-deep);background:#eaf5ec;border:1px dashed var(--leaf);border-radius:8px;padding:6px 8px;line-height:1.45;min-height:32px;}
+  .tool-btn{display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 2px; border-radius:var(--radius-md); background:#fff; border:2px solid var(--line); font-size:12px; font-weight:700; line-height:1.15; transition:.12s; text-align:center;}
+  .tool-btn .em{font-size:22px;}
+  .tool-btn:hover{border-color:var(--grass); transform:translateY(-1px);}
+  .tool-btn.sel{background:#e6f5e9; border-color:var(--leaf); box-shadow:0 0 0 3px rgba(88,179,104,.25);}
+  .harvest-all{margin-top:8px; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; background:linear-gradient(135deg,#ffd66b,#ffb347); color:#6b4a00; font-weight:800; font-size:13px; padding:10px 12px; border-radius:var(--radius-md); border:2px solid rgba(255,255,255,.7); box-shadow:0 3px 10px rgba(255,170,60,.35); transition:.15s; cursor:pointer;}
+  .harvest-all:hover{transform:translateY(-1px);}
+  .harvest-all .ha-cnt{background:#fff; border-radius:999px; padding:1px 8px; font-size:11px; font-weight:800;}
+  .harvest-all.no{background:#e8e2d2; color:#b9b0a0; cursor:not-allowed; box-shadow:none; transform:none;}
+  .hw-section{display:flex; flex-direction:column; gap:8px;}
+  .hw-group .gname{font-size:11px; color:var(--ink-soft); margin-bottom:4px;}
+  .hw-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .cpn-use{margin-top:3px;background:#fff2e6;color:#c06a2f;border:1px solid #e8b878;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+  .cpn-use.no{background:#e8e2d2;color:#b9b0a0;border-color:#e2dbcb;cursor:not-allowed;}
+  .cpn-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px;}
+  .cpn-row .cr-info{display:flex;flex-direction:column;line-height:1.4;}
+  .cpn-row .cr-info b{font-size:12.5px;}
+  .cpn-row .cr-info span{font-size:11px;color:var(--ink-soft);}
+  .cpn-row button{background:linear-gradient(135deg,#ffb347,#ff942e);color:#5c3d00;font-weight:800;font-size:11.5px;padding:5px 14px;border-radius:999px;cursor:pointer;}
+  .market-hero{font-size:38px;text-align:center;font-weight:900;color:#e04b2f;margin:8px 0 2px;line-height:1;}
+  .market-sub{text-align:center;color:var(--ink-soft);font-size:12.5px;line-height:1.5;}
+  .market-timer{text-align:center;background:#fff4e8;border:1.5px solid #f4c48f;border-radius:10px;padding:9px;font-weight:800;color:#b23b2b;margin:12px 0;font-size:13px;}
+  .market-actions{display:flex;gap:10px;margin-top:16px;}
+  .market-actions button{flex:1;padding:10px;border-radius:999px;font-size:13px;font-weight:800;cursor:pointer;}
+  .market-actions .go{background:linear-gradient(135deg,#ffb347,#ff942e);color:#5c3d00;}
+  .market-actions .ok{background:#eef3fb;color:#2f7ab0;border:1.5px solid #bcd4ec;}
+  .chip{display:flex; align-items:center; gap:5px; background:var(--chip); border:2px solid transparent; border-radius:999px; padding:5px 9px; font-size:12px; cursor:pointer; transition:.12s;}
+  .chip:hover{border-color:var(--grass);}
+  .chip.sel{background:#e6f5e9; border-color:var(--leaf);}
+  .chip .em{font-size:16px;}
+  .chip .cnt{background:#fff; color:var(--ink-soft); border-radius:999px; padding:0 6px; font-size:11px; font-weight:700;}
+  .chip.empty{opacity:.4; cursor:default;}
+  .layer-tag{font-size:9px; padding:1px 5px; border-radius:6px; color:#fff; font-weight:700;}
+  .layer-sense{background:#4aa3df;} .layer-net{background:#e07a3a;} .layer-ctrl{background:#a66bc0;} .layer-act{background:#3e9c50;}
+
+  /* ============ 中间场景 ============ */
+  main#scene{grid-area:scene; position:relative; overflow:hidden; background:linear-gradient(var(--sky-day-top),var(--sky-day-bot)); transition:background 1.2s linear;}
+  main#scene.night{background:linear-gradient(var(--sky-night-top),var(--sky-night-bot));}
+  main#scene.raining{background:linear-gradient(#6a8da8,#9ab8cc)!important;}
+  main#scene.raining.night{background:linear-gradient(#1a2a44,#2a3f5a)!important;}
+  main#scene.storm{background:linear-gradient(#4a6070,#7a9aaa)!important;}
+  main#scene.storm.night{background:linear-gradient(#0f1a2a,#1a2840)!important;}
+  #sky{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #sun,#moon{position:absolute; transition:opacity 1s linear, transform 1s linear;}
+  #sun{font-size:52px; right:44px; top:30px; filter:drop-shadow(0 0 18px rgba(255,200,60,.8));}
+  #moon{font-size:44px; right:44px; top:36px; opacity:0; filter:drop-shadow(0 0 14px rgba(220,230,255,.7));}
+  main#scene.night #sun{opacity:0;}
+  main#scene.night #moon{opacity:1;}
+  .cloud{position:absolute; font-size:34px; opacity:.5;}
+  .stars{position:absolute; inset:0; opacity:0; transition:opacity 1s;}
+  main#scene.night .stars{opacity:.8;}
+  .star{position:absolute; color:#fff; font-size:9px; animation:tw 3s infinite;}
+  @keyframes tw{0%,100%{opacity:.25;}50%{opacity:1;}}
+
+  /* ===== 降雨 ===== */
+  #rain{position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:5;}
+  .raindrop{position:absolute; width:2px; background:linear-gradient(transparent, rgba(130,190,255,.5)); border-radius:0 0 2px 2px;}
+  .raindrop.fall{animation:rainfall linear forwards;}
+  @keyframes rainfall{0%{transform:translateY(-20px); opacity:0;}8%{opacity:1;}90%{opacity:.7;}100%{transform:translateY(100vh); opacity:0;}}
+
+  #farm-wrap{position:absolute; left:50%; top:50%; transform:translate(-50%,-52%); width:min(84vh,72%); display:flex; flex-direction:column; align-items:center; gap:8px;}
+  #farm{display:grid; grid-template-columns:repeat(6,1fr); gap:6px; width:100%; background:rgba(120,80,40,.18); padding:10px; border-radius:22px; box-shadow:var(--shadow-pop); backdrop-filter:blur(1px);}
+  .cell{position:relative; aspect-ratio:1/1; border-radius:var(--radius-sm); background:var(--soil-mid); border:2px solid rgba(0,0,0,.08); cursor:pointer; overflow:hidden; transition:box-shadow .15s, transform .12s;}
+  .cell:hover{box-shadow:0 0 0 3px rgba(255,255,255,.65); transform:translateY(-1px);}
+  .cell.sel-cell{box-shadow:0 0 0 4px var(--sun); z-index:2;}
+  .cell .cov{position:absolute; inset:0; pointer-events:none;}
+  .cell .cov.wifi{background:rgba(58,167,224,.16); box-shadow:inset 0 0 0 2px rgba(58,167,224,.35);}
+  .cell .cov.g5{background:rgba(224,122,58,.16); box-shadow:inset 0 0 0 2px rgba(224,122,58,.35);}
+  .cell .crop{position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); font-size:30px; line-height:1; transition:filter .4s, transform .4s; filter:drop-shadow(0 2px 2px rgba(0,0,0,.2)); z-index:1;}
+  .cell .crop.stress-yellow{filter:sepia(.9) hue-rotate(-10deg) saturate(2) drop-shadow(0 2px 2px rgba(0,0,0,.2));}
+  .cell .crop.wilt{filter:grayscale(.4) opacity(.8); transform:translate(-50%,-48%) rotate(-6deg);}
+  .cell .crop.dead{filter:grayscale(1) opacity(.55); transform:translate(-50%,-50%) rotate(90deg);}
+  .cell .stage-bar{position:absolute; left:6%; right:6%; bottom:4px; height:4px; background:rgba(0,0,0,.2); border-radius:4px; overflow:hidden; z-index:2;}
+  .cell .stage-bar i{display:block; height:100%; background:var(--leaf); border-radius:4px;}
+  .cell .devices{position:absolute; top:3px; left:3px; right:3px; display:flex; flex-wrap:wrap; gap:2px; z-index:3;}
+  #viewToggle{position:absolute; top:12px; right:12px; background:rgba(255,253,246,.92); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; color:var(--leaf-deep); box-shadow:var(--shadow); z-index:10; cursor:pointer; transition:.15s;}
+  #viewToggle:hover{background:#fff;}
+  #viewToggle.on{color:#2f7ab0; border-color:#2f7ab0;}
+  .cell .devices .dv{font-size:12px; background:rgba(255,255,255,.85); border-radius:6px; padding:1px 2px; line-height:1; box-shadow:0 1px 2px rgba(0,0,0,.2); position:relative;}
+  .cell .devices .dv.ring-wifi::after{content:""; position:absolute; left:-1px; right:-1px; bottom:-2px; height:2px; background:var(--wifi); border-radius:2px;}
+  .cell .devices .dv.ring-g5::after{content:""; position:absolute; left:-1px; right:-1px; bottom:-2px; height:2px; background:var(--g5); border-radius:2px;}
+  .cell .devices .dv.work{animation:blink .7s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.45;}}
+  .cell .netdot{position:absolute; bottom:3px; left:3px; width:8px; height:8px; border-radius:50%; background:#bbb; z-index:3;}
+  .cell .netdot.wifi{background:var(--wifi);} .cell .netdot.g5{background:var(--g5);}
+  .cell .badge-ripe{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:32px; height:32px; display:none; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,.94); border:2px solid var(--sun); border-radius:50%; box-shadow:0 2px 10px rgba(0,0,0,.3); z-index:5; cursor:pointer; animation:bounce 1s infinite;}
+  @keyframes bounce{0%,100%{transform:translate(-50%,-52%);}50%{transform:translate(-50%,-62%);}}
+  .cell .crack{position:absolute; inset:0; background:radial-gradient(circle at 30% 40%, transparent 20%, rgba(60,35,15,.35) 21%, transparent 23%), radial-gradient(circle at 70% 60%, transparent 24%, rgba(60,35,15,.3) 25%, transparent 27%), radial-gradient(circle at 55% 30%, transparent 18%, rgba(60,35,15,.28) 19%, transparent 21%); opacity:0; transition:opacity .4s;}
+  .cell.dry .crack{opacity:1;}
+  .cell.wet::after{content:""; position:absolute; inset:0; background:linear-gradient(rgba(255,255,255,.18),transparent 40%); pointer-events:none;}
+  .cell .pestmark{position:absolute; right:3px; bottom:3px; font-size:13px; z-index:3;}
+
+  /* 全局面板 + 单格面板 */
+  #globalPanel{position:absolute; top:12px; left:12px; background:rgba(255,253,246,.92); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:12px 14px; font-size:12px; backdrop-filter:blur(3px); z-index:10; max-width:230px;}
+  #globalPanel h4{font-size:13px; margin-bottom:6px; color:var(--leaf-deep);}
+  #globalPanel .g{display:flex; justify-content:space-between; gap:10px; padding:2px 0;}
+  #globalPanel .g .v{font-weight:700; font-variant-numeric:tabular-nums;}
+  .day-tag{display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; background:#fff0b8; color:#8a6200;}
+  .day-tag.night{background:#cdd9f0; color:#33477a;}
+  #cellPanel{position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(255,253,246,.95); border-radius:var(--radius-lg); box-shadow:var(--shadow-pop); padding:12px 14px; font-size:12px; z-index:10; min-width:300px; display:none;}
+  #cellPanel h4{font-size:14px; margin-bottom:6px;}
+  #cellPanel table{width:100%; border-collapse:collapse;}
+  #cellPanel td{padding:3px 4px; border-bottom:1px dashed var(--line);}
+  #cellPanel td.k{color:var(--ink-soft); white-space:nowrap;}
+  #cellPanel td.v{font-weight:700; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  #cellPanel td.v.unk{color:#c8c0b0; font-weight:400;}
+  #cellPanel .acts{display:flex; gap:6px; margin-top:9px; flex-wrap:wrap;}
+  #cellPanel .acts button{background:var(--leaf); color:#fff; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700;}
+  #cellPanel .acts button.gold{background:var(--sun); color:#6b4a00;}
+  #cellPanel .acts button.warn{background:var(--danger); color:#fff;}
+  #cellPanel .acts button.ghost{background:#eee; color:var(--ink);}
+  #cellPanel .devlist{margin-top:8px; font-size:11px;}
+  #cellPanel .devlist .di{display:flex; align-items:center; gap:5px; padding:3px 0;}
+  #cellPanel .devlist .di button{margin-left:auto; background:#f4e9d8; border-radius:8px; padding:2px 8px; font-size:11px;}
+
+  /* ============ 商店弹窗 ============ */
+  .shop-modal{background:var(--card); border-radius:var(--radius-lg); box-shadow:var(--shadow-pop); width:min(820px,94vw); max-height:88vh; overflow-y:auto; padding:20px 22px;}
+  .shop-tabs{display:flex; gap:4px; flex-wrap:wrap; margin:10px 0;}
+  .shop-tabs button{padding:7px 14px; border-radius:999px; font-size:13px; background:var(--chip); color:var(--ink-soft); font-weight:600; transition:.12s;}
+  .shop-tabs button.on{background:var(--leaf); color:#fff;}
+  .shop-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:9px;}
+  .shop-item{background:#fff; border:1px solid var(--line); border-radius:var(--radius-md); padding:9px 10px; box-shadow:0 2px 8px rgba(90,70,30,.06); display:flex; gap:9px; align-items:flex-start;}
+  .shop-item .em{font-size:26px; line-height:1;}
+  .shop-item .info{flex:1; min-width:0;}
+  .shop-item .nm{font-size:13px; font-weight:700;}
+  .shop-item .ds{font-size:11px; color:var(--ink-soft); line-height:1.35; margin-top:2px;}
+  .shop-item .params{font-size:10px; color:var(--leaf-deep); margin-top:3px; line-height:1.4;}
+  .shop-item .buy{margin-left:4px; display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
+  .shop-item .price{font-size:13px; font-weight:800; color:#c88600;}
+  .shop-item .buy button{background:var(--sun); color:#6b4a00; font-weight:700; padding:6px 12px; border-radius:999px; font-size:12px;}
+  .shop-item .buy button:disabled{background:#eee; color:#b9b0a0; cursor:not-allowed;}
+  .tier-tag{font-size:9px; padding:1px 5px; border-radius:6px; color:#fff; font-weight:700; vertical-align:1px;}
+  .t1{background:#8fae55;} .t2{background:#d99a3d;} .t3{background:#c05a8b;}
+
+  /* ============ 弹窗 ============ */
+  .overlay{position:fixed; inset:0; background:rgba(30,24,12,.45); display:none; align-items:center; justify-content:center; z-index:100; backdrop-filter:blur(2px);}
+  .overlay.show{display:flex;}
+  .modal{background:var(--card); border-radius:var(--radius-lg); box-shadow:var(--shadow-pop); width:min(760px,94vw); max-height:90vh; overflow-y:auto; padding:20px 22px;}
+  .modal.wide{width:min(900px,96vw);}
+  .modal h3{font-size:18px; margin-bottom:4px; color:var(--leaf-deep);}
+  .modal .sub{font-size:12px; color:var(--ink-soft); margin-bottom:14px;}
+  .modal .close{float:right; font-size:22px; color:var(--ink-soft); line-height:1; padding:2px 6px; border-radius:8px;}
+  .modal .close:hover{background:#eee;}
+
+  /* ===== 数据看板 ===== */
+  .chart-modal{background:var(--card); border-radius:var(--radius-lg); box-shadow:var(--shadow-pop); width:min(880px,94vw); max-height:90vh; overflow-y:auto; padding:20px 22px;}
+  .chart-modal h3{font-size:18px; margin-bottom:4px; color:var(--leaf-deep);}
+  .chart-ctrl{display:flex; gap:8px; align-items:center; margin:10px 0 8px; flex-wrap:wrap;}
+  .chart-ctrl select{background:#fff; border:1px solid var(--line); border-radius:8px; padding:5px 8px; font-size:12px;}
+  .chart-tabs{display:flex; gap:4px; flex-wrap:wrap;}
+  .chart-tabs button{padding:6px 10px; border-radius:999px; font-size:12px; background:var(--chip); color:var(--ink-soft); font-weight:600;}
+  .chart-tabs button.on{background:var(--leaf); color:#fff;}
+  #chartCanvas{width:100%; height:260px; border-radius:var(--radius-sm); background:#fff; border:1px solid var(--line);}
+  .chart-legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:11px;}
+  .chart-legend .lgi{display:flex; align-items:center; gap:4px;}
+  .chart-legend .lgd{width:10px; height:3px; border-radius:2px;}
+
+  /* ===== 新手任务引导 ===== */
+  .task-panel{background:linear-gradient(135deg,#fffbe8,#fff);border:2px solid var(--sun);border-radius:var(--radius-md);box-shadow:var(--shadow);overflow:hidden;}
+  .task-head{display:flex;align-items:center;gap:6px;padding:8px 10px;font-size:13px;font-weight:800;color:#8a6200;cursor:pointer;background:linear-gradient(90deg,#ffe9ad,#fff3cf);}
+  .task-head .tp{margin-left:auto;background:#fff;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;}
+  .task-head .tw{font-size:10px;transition:transform .2s;}
+  .task-panel.folded .task-body{display:none;}
+  .task-panel.folded .tw{transform:rotate(-90deg);}
+  .task-body{padding:6px 8px 8px;display:flex;flex-direction:column;gap:4px;}
+  .trow{display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.4;padding:4px 6px;border-radius:8px;}
+  .trow .ic{width:16px;text-align:center;flex:none;}
+  .trow.done{color:var(--ink-soft);}
+  .trow.done .tt{text-decoration:line-through;}
+  .trow.cur{background:#e6f5e9;border:1.5px dashed var(--leaf);font-weight:700;color:var(--leaf-deep);}
+  .trow.lock{opacity:.4;}
+  .trow .tip{font-size:11px;font-weight:400;color:var(--ink-soft);margin-top:2px;display:block;line-height:1.45;}
+  .task-go{margin:4px auto 2px;display:block;background:var(--leaf);color:#fff;font-weight:800;font-size:12px;padding:7px 16px;border-radius:999px;}
+  .task-intro{font-size:11px;color:var(--ink-soft);line-height:1.5;padding:2px 4px;}
+  .medal-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:4px 0;}
+  .medal-chips .mc{font-size:11px;font-weight:800;background:#fff3cf;border:1px solid var(--sun);border-radius:999px;padding:3px 9px;color:#8a6200;}
+  #taskSpot{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(20,15,5,.55);z-index:95;pointer-events:none;padding:5px;display:none;transition:all .4s;}
+  #taskSpot::after{content:"";position:absolute;inset:-3px;border-radius:14px;border:3px solid var(--sun);animation:spotPulse 1.2s infinite;}
+  @keyframes spotPulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+  .welcome-ov{position:fixed;inset:0;background:rgba(18,26,16,.6);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+  .welcome-ov.show{display:flex;}
+  .welcome-card{background:var(--card);border-radius:24px;box-shadow:var(--shadow-pop);width:min(440px,92vw);padding:30px 28px 24px;text-align:center;animation:wpop .35s cubic-bezier(.34,1.4,.64,1);}
+  @keyframes wpop{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .welcome-card h2{font-size:19px;color:var(--leaf-deep);margin:8px 0 10px;}
+  .welcome-card .wgoal{font-size:13px;line-height:1.7;color:var(--ink);background:#f4f9ee;border-radius:12px;padding:10px 12px;margin-bottom:16px;}
+  .wbtns{display:flex;flex-direction:column;gap:9px;}
+  .wbtn{border-radius:14px;padding:11px 16px;font-size:15px;font-weight:800;border:2px solid var(--line);background:#fff;color:var(--ink);}
+  .wbtn.main{background:var(--leaf);border-color:var(--leaf-deep);color:#fff;box-shadow:0 4px 14px rgba(62,156,80,.4);}
+  .wbtn small{display:block;font-size:11px;font-weight:400;opacity:.85;margin-top:2px;}
+  .wnote{font-size:11px;color:var(--ink-soft);margin-top:14px;}
+  .confetti{position:fixed;top:-30px;z-index:400;font-size:20px;pointer-events:none;animation:confFall linear forwards;}
+  @keyframes confFall{to{transform:translateY(112vh) rotate(560deg);opacity:.5;}}
+
+  /* 控制器弹窗 */
+  .ctrl-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .ctrl-col h5{font-size:13px; margin-bottom:7px; color:var(--ink);}
+  .devbox{background:#fff; border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 9px; font-size:12px; max-height:150px; overflow-y:auto; margin-bottom:8px;}
+  .devbox .drow{display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dashed #f0e8d8;}
+  .devbox .drow:last-child{border-bottom:none;}
+  .fault{background:#fdeaea; color:#b23b3b; border-radius:var(--radius-sm); padding:7px 9px; font-size:12px; margin-bottom:8px; line-height:1.4;}
+  .rule-card{border:1px solid var(--line); border-radius:var(--radius-md); padding:9px 10px; background:#fff; margin-bottom:8px; font-size:12px;}
+  .rule-card .rline{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .rule-card .rline .txt{font-weight:700;}
+  .rule-card .rops{margin-top:6px; display:flex; gap:5px; flex-wrap:wrap;}
+  .rule-card .rops button{font-size:11px; background:#f4e9d8; border-radius:8px; padding:3px 8px;}
+  .rule-card .rops button.del{background:#fdeaea; color:#b23b3b;}
+  .rule-card.off{opacity:.5;}
+  .editor{background:#fbf6ea; border:1px dashed var(--line); border-radius:var(--radius-md); padding:10px; margin-top:10px;}
+  .editor .erow{display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap; font-size:12px;}
+  .editor select,.editor input{background:#fff; border:1px solid var(--line); border-radius:8px; padding:5px 8px; font-size:12px;}
+  .editor input[type=number]{width:70px;}
+  .editor .btn{background:var(--leaf); color:#fff; padding:6px 14px; border-radius:999px; font-size:12px; font-weight:700;}
+  .editor .btn.sec{background:#fff; color:var(--ink); border:1px solid var(--line);}
+  .tgrow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px;padding:3px 0;border-bottom:1px dashed #f0e8d8;}
+  .tgrow input[type=number]{width:56px;padding:3px 5px;font-size:12px;border:1px solid var(--line);border-radius:6px;}
+  .tgrow .tcs{font-size:10px;}
+  .cell-chip{display:inline-flex;align-items:center;gap:3px;background:#fff;border:2px solid var(--line);border-radius:9px;padding:4px 9px;font-size:12px;font-weight:700;cursor:pointer;transition:.12s;}
+  .cell-chip:hover{border-color:var(--leaf);}
+  .cell-chip.cur{background:#e6f5e9;border-color:var(--leaf);box-shadow:0 0 0 2px rgba(88,179,104,.25);}
+  .loop-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;padding:5px 7px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;background:#fff;}
+  .loop-row input[type=number]{width:52px;padding:3px 5px;font-size:12px;border:1px solid var(--line);border-radius:6px;}
+  .loop-pair{flex:1;min-width:210px;font-size:11px;line-height:1.5;}
+  .sec-h{font-size:13px;font-weight:700;margin:14px 0 7px;color:var(--ink);border-left:4px solid var(--leaf);padding-left:8px;}
+  .cfg-actions{display:flex;gap:12px;margin:10px 0 4px;}
+  .cfg-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:800;padding:12px 10px;border-radius:14px;cursor:pointer;transition:.15s;border:2px solid transparent;}
+  .cfg-btn .em{font-size:20px;line-height:1;}
+  .cfg-btn:hover{transform:translateY(-2px);}
+  .cfg-save{background:var(--leaf);color:#fff;border-color:var(--leaf-deep);box-shadow:0 4px 12px rgba(62,156,80,.35);}
+  .cfg-copy{background:linear-gradient(135deg,#ffb347,#ff942e);color:#5c3d00;border-color:rgba(255,255,255,.7);box-shadow:0 3px 12px rgba(255,150,40,.4);}
+  .logbox{background:#26313f; color:#d9e6f2; border-radius:var(--radius-sm); padding:8px 10px; font-size:11px; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; height:150px; overflow-y:auto; line-height:1.55;}
+  .logbox .l{color:#9fd0f0;} .logbox .f{color:#ffb4a0;} .logbox .i{color:#c9d7e3;}
+
+  /* 报告 */
+  .rep-stats{display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin:12px 0;}
+  .rep-stats .rs{background:#fff; border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px;}
+  .rep-stats .rs .n{font-size:22px; font-weight:800; color:var(--leaf-deep);}
+  .rep-stats .rs .t{font-size:11px; color:var(--ink-soft);}
+  .score-hero{text-align:center; background:linear-gradient(135deg,#fff3cf,#fff); border:2px solid var(--sun); border-radius:var(--radius-lg); padding:16px; margin-bottom:12px;}
+  .score-hero .n{font-size:40px; font-weight:800; color:#c88600;}
+  .score-hero .t{font-size:12px; color:var(--ink-soft);}
+
+  /* 帮助 */
+  .layers{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:12px 0;}
+  .layer-card{border-radius:var(--radius-md); padding:11px; color:#fff; font-size:12px;}
+  .layer-card .lc-t{font-weight:800; font-size:14px; margin-bottom:4px;}
+  .layer-card .lc-d{font-size:11px; line-height:1.45; opacity:.95;}
+  .legend{font-size:12px; line-height:1.9;}
+
+  /* ============ 任务中心（右下角） ============ */
+  #questPanel{position:absolute; right:12px; bottom:12px; width:min(330px,40vw); background:rgba(255,253,246,.96); border-radius:var(--radius-lg); box-shadow:var(--shadow-pop); z-index:11; overflow:hidden; border:2px solid var(--sun);}
+  #questPanel .qhead{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13px;font-weight:800;color:#8a6200;cursor:pointer;background:linear-gradient(90deg,#ffe9ad,#fff3cf);user-select:none;transition:background .15s;border-bottom:1px solid rgba(224,185,96,.55);}
+  #questPanel .qhead:hover{background:linear-gradient(90deg,#ffdf9a,#ffe9bd);}
+  #questPanel .qhead .qcount{margin-left:auto;background:#fff;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;color:var(--ink);}
+  #questPanel .qhead .qtw{font-size:11px;font-weight:800;color:#8a6200;background:#fff;border:1.5px solid #e0b960;border-radius:999px;padding:2px 10px;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,.08);white-space:nowrap;}
+  #questPanel .qbody{padding:8px 10px 10px;max-height:min(54vh,360px);overflow-y:auto;display:flex;flex-direction:column;gap:7px;}
+  .qrow{background:#fff;border:1px solid var(--line);border-radius:var(--radius-md);padding:7px 9px;font-size:12px;}
+  .qrow.comp{border-color:var(--leaf);background:#f4faf0;}
+  .qrow .qtop{display:flex;align-items:center;gap:5px;font-weight:700;}
+  .qrow .qtop .qem{font-size:16px;}
+  .qrow .qtop .qrew{margin-left:auto;font-size:11px;color:#c88600;font-weight:800;white-space:nowrap;}
+  .qrow .qdesc{font-size:11px;color:var(--ink-soft);line-height:1.4;margin-top:2px;}
+  .qrow .qbar{height:5px;background:rgba(0,0,0,.1);border-radius:5px;overflow:hidden;margin-top:5px;}
+  .qrow .qbar i{display:block;height:100%;background:var(--leaf);border-radius:5px;transition:width .3s;}
+  .qrow.comp .qbar i{background:var(--sun);}
+  .qrow .qfoot{display:flex;align-items:center;gap:6px;margin-top:5px;}
+  .qrow .qprog{font-size:10px;color:var(--ink-soft);white-space:nowrap;}
+  .qbtn{margin-left:auto;background:#e8e2d2;color:#c0b8a6;font-weight:800;font-size:11px;padding:4px 11px;border-radius:999px;cursor:not-allowed;opacity:.7;}
+  .qbtn.go{background:var(--leaf);color:#fff;cursor:pointer;opacity:1;box-shadow:0 2px 6px rgba(62,156,80,.3);}
+  .qbtn.go:hover{transform:translateY(-1px);}
+  .qbtn.claimed{background:#f0ead9;color:#b9b0a0;}
+
+  /* 提示气泡 */
+  #toast{position:absolute; left:50%; top:74px; transform:translateX(-50%); background:rgba(40,34,24,.92); color:#fff; padding:9px 16px; border-radius:999px; font-size:13px; z-index:60; pointer-events:none; opacity:0; transition:opacity .25s; max-width:80%; text-align:center;}
+  #toast.show{opacity:1;}
+
+  @media (max-width:1100px){
+    body{grid-template-columns:200px 1fr;}
+    #farm-wrap{width:min(84vh,78%);}
+  }
+  @media (max-width:820px){
+    body{grid-template-columns:1fr; grid-template-rows:56px auto 1fr; grid-template-areas:"header" "left" "scene"; height:auto; min-height:100vh; overflow:auto;}
+    aside#left{flex-direction:row; flex-wrap:wrap; overflow:visible;}
+    .shop-grid{grid-template-columns:1fr;}
+    #farm-wrap{position:static; transform:none; margin:0 auto; width:92vw;}
+    #globalPanel,#cellPanel{position:static; transform:none; margin:8px auto;}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo"><span class="mark">🌾</span><div>智慧农业物联网<small>仿真教学平台</small></div></div>
+    <div class="hdr-mid">
+      <div class="mode-toggle" id="modeToggle">
+        <button data-mode="free" class="on">自由研学</button>
+        <button data-mode="challenge">5分钟挑战</button>
+      </div>
+      <div class="speed-toggle" id="speedToggle">
+        <button data-speed="1" class="on">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+        <button data-speed="8">8×</button>
+      </div>
+      <button class="btn-hdr primary" id="btnRun">▶ 开启环境模拟</button>
+      <button class="btn-hdr ghost" id="btnReset">↺ 重置</button>
+      <button class="btn-hdr ghost" id="btnReport">📊 报告</button>
+      <button class="btn-hdr ghost" id="btnChart">📈 数据</button>
+      <button class="btn-hdr ghost" id="btnHelp">❓ 帮助</button>
+    </div>
+    <div class="hdr-right">
+      <span class="pill" id="dayPill">☀️ <b>白天</b></span>
+      <span class="pill">🕐 <b id="clockTxt">06:00</b></span>
+      <span class="pill">🪙 <b id="goldTxt">60</b></span>
+      <span id="marketTag" class="pill market-tag" style="display:none"></span>
+      <button id="btnShop" class="btn-shop-big" title="打开农资商店（种子与物联网硬件）"><span class="em">🛒</span>商店</button>
+    </div>
+  </header>
+
+  <aside id="left">
+    <div id="taskPanelWrap"></div>
+    <div>
+      <div class="mode-card" id="modeCard">
+        <div class="row"><span class="lbl">当前模式</span><span class="val" id="modeName">自由研学模式</span></div>
+        <div class="row"><span class="lbl">金币</span><span class="val gold-big" id="leftGold">🪙 60</span></div>
+        <div class="row" id="cdRow" style="display:none"><span class="lbl">倒计时</span><span class="val countdown ok" id="cdTxt">05:00</span></div>
+        <div class="row"><span class="lbl">预估得分</span><span class="val" id="scoreVal">0</span></div>
+      </div>
+    </div>
+    <div class="section-title">🧰 基础手动工具（无限免费）</div>
+    <div class="tools-grid" id="toolsGrid"></div>
+    <button id="btnHarvestAll" class="harvest-all no" onclick="harvestAll()" title="一键收获所有已成熟的作物（只收获成熟可收的）"><span>🧺</span>一键收获 <span class="ha-cnt" id="harvestAllCnt">0</span></button>
+    <div id="selHint" class="sel-hint">未选择：点击地块可查看状态</div>
+    <div class="section-title">🌱 种子库存</div>
+    <div class="hw-chips" id="seedChips"></div>
+    <div class="section-title">🎫 打折券仓库</div>
+    <div class="hw-chips" id="couponChips"></div>
+    <div class="section-title">📡 物联网硬件道具</div>
+    <div class="hw-section" id="hwInventory"></div>
+    <div class="legend" style="font-size:10px;color:var(--ink-soft);line-height:1.6;border-top:1px dashed var(--line);padding-top:8px;">
+      感知层·传感器采集 → 网络层·WiFi/5G传输 → 平台层·控制器决策 → 应用层·执行器作业
+    </div>
+  </aside>
+
+  <main id="scene">
+    <div id="sky"><div id="sun">☀️</div><div id="moon">🌙</div><div class="stars" id="stars"></div></div>
+    <div id="rain"></div>
+    <div id="farm-wrap"><div id="farm"></div></div>
+    <button id="viewToggle" title="点击切换：观察作物 / 设备视图">👁 观察作物</button>
+    <div id="globalPanel">
+      <h4>📊 全局状态</h4>
+      <div class="g"><span>时刻</span><span class="v" id="gpClock">第1天 06:00</span></div>
+      <div class="g"><span>天气</span><span class="v" id="gpWeather">☀️ 晴</span></div>
+      <div class="g"><span>气温</span><span class="v" id="gpTemp">20 ℃</span></div>
+      <div class="g"><span>光照</span><span class="v" id="gpLight">0</span></div>
+      <div class="g"><span>作物</span><span class="v" id="gpCrop">0</span></div>
+      <div class="g"><span>已收获</span><span class="v" id="gpHarv">0</span></div>
+    </div>
+    <div id="cellPanel"></div>
+    <div id="toast"></div>
+    <div id="questPanel"></div>
+  </main>
+
+  <div class="overlay" id="ovCtrl"><div class="modal wide" id="ctrlModal"></div></div>
+  <div class="overlay" id="ovHelp"><div class="modal" id="helpModal"></div></div>
+  <div class="overlay" id="ovReport"><div class="modal" id="reportModal"></div></div>
+  <div class="overlay" id="ovChart"><div class="chart-modal" id="chartModal"></div></div>
+  <div class="overlay" id="ovShop"><div class="shop-modal" id="shopModal"></div></div>
+  <div class="overlay" id="ovGold"><div class="modal" id="goldModal" style="width:min(360px,92vw)"></div></div>
+  <div class="overlay" id="ovCpn"><div class="modal" id="cpnModal" style="width:min(430px,92vw)"></div></div>
+  <div class="overlay" id="ovMarket"><div class="modal" id="marketModal" style="width:min(430px,92vw)"></div></div>
+  <div id="taskSpot"></div>
+  <div class="overlay" id="ovMedal"><div class="modal" id="medalModal" style="width:min(400px,92vw)"></div></div>
+  <div class="welcome-ov" id="welcomeOv">
+    <div class="welcome-card">
+      <div style="font-size:50px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.2))">🌾</div>
+      <h2>智慧农业物联网仿真教学平台</h2>
+      <div class="wgoal">经营你的智慧农场：<br><b>种作物赚钱 → 部署物联网 → 全自动化经营！</b></div>
+      <div class="wbtns">
+        <button class="wbtn main" onclick="welcomeGo()">📋 跟我做任务<small>推荐 · 5 个小任务轻松上手</small></button>
+        <button class="wbtn" onclick="welcomeSkip()">🚀 我自己探索</button>
+      </div>
+      <p class="wnote">随时点「❓ 帮助」→「🎓 新手引导」可重新打开</p>
+    </div>
+  </div>
+
+<script>
+"use strict";
+/* ======================= 数据模型 ======================= */
+const GRID = 6, N = GRID*GRID;
+
+const CROPS = {
+  wheat:{name:'小麦',emoji:'🌾',tier:1,seedCost:10,value:60,temp:[10,25],moist:[30,85],light:[30,100],fert:[15,100],ph:[6,8],growth:2.2,sens:0.35,
+    desc:'抗冻、抗旱、耐贫瘠，几乎不容易死',traits:['耐旱','抗冻','耐贫瘠']},
+  corn:{name:'玉米',emoji:'🌽',tier:1,seedCost:15,value:80,temp:[18,30],moist:[25,80],light:[60,100],fert:[20,100],ph:[5.5,7.5],growth:2.0,sens:0.5,
+    desc:'喜光、适应性强，容错率极高',traits:['喜光','适应性强']},
+  soybean:{name:'大豆',emoji:'🥜',tier:2,seedCost:30,value:140,temp:[15,28],moist:[40,65],light:[40,100],fert:[30,90],ph:[6,7],growth:1.7,sens:0.9,
+    desc:'对土壤PH敏感，过酸过碱不结果；怕涝',traits:['PH敏感','怕涝']},
+  cotton:{name:'棉花',emoji:'🌼',tier:2,seedCost:50,value:200,temp:[20,35],moist:[25,55],light:[70,100],fert:[25,85],ph:[6,7.5],pestMul:2.2,growth:1.5,sens:1.0,
+    desc:'喜高温强光、怕潮湿；高湿极易爆发病虫害',traits:['喜光','怕潮','易生病虫']},
+  strawberry:{name:'草莓',emoji:'🍓',tier:3,seedCost:120,value:500,temp:[15,22],moist:[55,75],light:[40,90],fert:[40,85],ph:[5.5,6.8],pestMul:1.4,growth:1.3,sens:1.6,
+    desc:'极严苛：温差、湿度、光照、肥力须精准区间；高湿烂果、高温灼伤',traits:['高价值','极严苛']},
+  tomato:{name:'番茄',emoji:'🍅',tier:3,seedCost:80,value:320,temp:[18,28],moist:[45,75],light:[55,100],fert:[30,85],ph:[5.8,7],growth:1.4,sens:1.1,
+    desc:'需昼夜温差合适；水肥不均立刻裂果',traits:['喜光','忌水肥不均']},
+  lettuce:{name:'生菜',emoji:'🥬',tier:3,seedCost:40,value:180,temp:[10,20],moist:[60,85],light:[20,60],fert:[20,70],ph:[6,7],growth:2.4,sens:1.5,
+    desc:'速生精细蔬菜，喜阴凉湿润、怕强光高温；参数错误直接枯萎',traits:['速生','耐阴','怕高温']},
+};
+
+const SENSORS = {
+  soilMoisture:{name:'土壤湿度传感器',emoji:'💧',cost:30,metric:'moisture',desc:'监测土壤含水率',unit:'%'},
+  soilTemp:{name:'土壤温度传感器',emoji:'🌡️',cost:30,metric:'soilTemp',desc:'监测地温（区别于气温）',unit:'℃'},
+  airTempHum:{name:'空气温度传感器',emoji:'💨',cost:30,metric:'airTemp',desc:'监测环境气温',unit:'℃'},
+  light:{name:'光照强度传感器',emoji:'☀️',cost:30,metric:'light',desc:'检测光合有效辐射',unit:''},
+  ecFertility:{name:'土壤EC肥力传感器',emoji:'🧪',cost:45,metric:'fertility',desc:'检测土壤盐分与肥力浓度',unit:''},
+  ph:{name:'土壤PH酸碱度传感器',emoji:'⚗️',cost:45,metric:'ph',desc:'检测酸碱度（作物有喜酸/喜碱之分）',unit:''},
+  pestIR:{name:'病虫害红外监测传感器',emoji:'🐛',cost:45,metric:'pests',desc:'监测虫口密度',unit:''},
+};
+
+const NETWORKS = {
+  wifi:{name:'WiFi覆盖模块',emoji:'📶',cost:50,radius:1,desc:'短距离、低成本、适合小面积农场'},
+  g5:{name:'5G农业覆盖模块',emoji:'📡',cost:120,radius:2,desc:'远距离、低延迟、适合大面积农田'},
+};
+
+const CONTROLLER = {name:'智能控制器',emoji:'🧠',cost:65,desc:'编写条件逻辑，自动决策执行器作业'};
+
+const ACTUATORS = {
+  moistCtl:{name:'土壤湿度控制器',emoji:'🚿',cost:65,desc:'双向调节湿度：偏低滴水补水、偏高排涝降湿'},
+  fertPump:{name:'土壤肥力控制器',emoji:'🧴',cost:60,desc:'按目标区间自动定量补肥'},
+  growLight:{name:'光照控制器',emoji:'💡',cost:55,desc:'黑夜/阴天补光，延续光合作用'},
+  vent:{name:'气温控制器',emoji:'🌀',cost:50,desc:'通风降低气温，减少病菌滋生'},
+  soilHeat:{name:'土壤温度控制器',emoji:'🔥',cost:55,desc:'低温防冻，提高地温'},
+  phAdj:{name:'土壤酸碱度控制器',emoji:'🪨',cost:60,desc:'双向调节PH至设定的目标值±波动范围内'},
+  pestLamp:{name:'病虫害控制器',emoji:'🪲',cost:50,desc:'物理除虫、无农药污染'},
+};
+
+const METRIC_LABEL = {moisture:'土壤湿度',soilTemp:'地温',airTemp:'气温',light:'光照',fertility:'肥力',ph:'PH',pests:'病虫害'};
+
+const TOOLS = [
+  {id:'water',name:'浇水',emoji:'💦'},
+  {id:'drain',name:'排水',emoji:'🕳️'},
+  {id:'fert',name:'施肥',emoji:'🧂'},
+  {id:'pest',name:'除虫',emoji:'🐞'},
+];
+
+const START_GOLD = 60;
+const CHALLENGE_SECONDS = 300;
+const GROW_SPEED = 1.9;
+
+/* ===== 天气模型 ===== */
+const WEATHER_CFG = {
+  sunny:{name:'晴',emoji:'☀️',moistDelta:0,tempDelta:0,pestMult:1,lightMult:1},
+  cloudy:{name:'多云',emoji:'⛅',moistDelta:0.3,tempDelta:-1.5,pestMult:1,lightMult:0.55},
+  rainy:{name:'降雨',emoji:'🌧️',moistDelta:3.5,tempDelta:-3,pestMult:1.4,lightMult:0.2},
+  storm:{name:'暴雨',emoji:'⛈️',moistDelta:7,tempDelta:-5,pestMult:1.8,lightMult:0.05},
+};
+
+/* ======================= 状态 ======================= */
+let S = null;
+let cellEls = [];
+let showDevices = false;
+let simSpeed = 1;
+
+function freshState(mode){
+  const cells = [];
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+    cells.push({
+      id:r*GRID+c, r, c,
+      moisture: rand(45,58), fertility: rand(45,60), ph: 7.0, pests: 0,
+      soilTemp: 18, crop:null, deadCrop:null, cool:0,
+      devices:[], known:{},
+    });
+  }
+  return {
+    mode, running:false, tick:0, hour:6, day:1, gold:START_GOLD,
+    cells, networks:[], devices:[], devSeq:1,
+    inventory:{seed:{}, hw:[], coupons:[]},
+    selTool:null, selSeed:null, selHw:null, selCell:null, sel:null,
+    drift:0, timeLeft:CHALLENGE_SECONDS,
+    stats:{manual:0, auto:0, harvestValue:0, harvestAuto:0, harvestManual:0, lossValue:0, waste:0, planted:0, dead:0, harvested:0},
+    weather:{condition:'sunny', rainTicks:0, nextCheck:Math.floor(rand(10,22))},
+    market:{active:false, mult:1, remain:0, next:Math.floor(rand(200,480))},
+    quest:{cottonPlanted:0,deploySensor:0,deployNetwork:0,deployController:0,deployActuator:0,seedBuyCount:0},    history:{global:{temp:[],light:[],airHum:[]}, cells:Array.from({length:N},()=>({moisture:[],soilTemp:[],fertility:[],ph:[],pests:[]}))},
+  };
+}
+
+/* ======================= 工具函数 ======================= */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const rand = (a,b)=> a + Math.random()*(b-a);
+function band(v,lo,hi,soft){
+  if(v>=lo && v<=hi) return 1;
+  if(v<lo) return clamp(1-(lo-v)/soft,0,1);
+  return clamp(1-(v-hi)/soft,0,1);
+}
+function fmtClock(h){ const hh=Math.floor(h)%24; return String(hh).padStart(2,'0')+':00'; }
+function cellOf(id){ return S.cells[id]; }
+function getDevice(id){ for(const d of S.devices) if(d.id===id) return d; return null; }
+function newDevice(kind,category,cellId,extra){
+  const d = Object.assign({id:'d'+S.devSeq++, kind, category, cellId, on:false, rules:[]}, extra||{});
+  S.devices.push(d);
+  S.cells[cellId].devices.push(d);
+  return d;
+}
+function dist(a,b){ return Math.max(Math.abs(a.r-b.r), Math.abs(a.c-b.c)); }
+function covNetworks(cellId){
+  const cell = cellOf(cellId);
+  const nets=[];
+  for(const n of S.networks){
+    const ctr=cellOf(n.cellId);
+    if(dist(cell,ctr)<=n.radius) nets.push(n);
+  }
+  return nets;
+}
+function deviceNetwork(d){
+  const nets = covNetworks(d.cellId);
+  if(!nets.length) return null;
+  let best=nets[0];
+  for(const n of nets){
+    const bd=dist(cellOf(d.cellId),cellOf(best.cellId));
+    const nd=dist(cellOf(d.cellId),cellOf(n.cellId));
+    if(nd<bd) best=n;
+  }
+  return best.id;
+}
+function readSensor(d){
+  const metric=SENSORS[d.kind].metric;
+  if(metric==='airTemp') return S.globals.airTemp;
+  if(metric==='light') return S.globals.light;
+  const cell=cellOf(d.cellId);
+  return cell[metric];
+}
+function metricValue(cell,metric){
+  if(metric==='airTemp') return S.globals.airTemp;
+  if(metric==='light') return S.globals.light;
+  return cell[metric];
+}
+function fmtMetric(metric,v){
+  if(metric==='ph') return v.toFixed(1);
+  return Math.round(v);
+}
+function cropStage(g){
+  if(g<15) return '幼苗';
+  if(g<50) return '生长期';
+  if(g<85) return '开花结果';
+  return '成熟可收获';
+}
+function cropEmojiSize(g){ return Math.round(24 + g*0.16); }
+function cropEmoji(c){
+  if(c.growth<15) return '🌱';
+  if(c.growth<50) return '🌿';
+  return CROPS[c.type].emoji;
+}
+
+function toast(msg,ms){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'), ms||2200);
+}
+
+/* ======================= 天气系统 ======================= */
+function updateWeather(){
+  const w = S.weather;
+  if(w.rainTicks > 0){
+    w.rainTicks--;
+    if(w.rainTicks <= 0){
+      w.condition = 'cloudy';
+      w.nextCheck = S.tick + Math.floor(rand(6,16));
+    }
+    return;
+  }
+  if(S.tick < w.nextCheck) return;
+  const h = S.hour;
+  const isDay = h>=6 && h<18;
+  if(w.condition === 'sunny'){
+    if(Math.random() < 0.28){ w.condition='cloudy'; w.nextCheck = S.tick + Math.floor(rand(5,14)); }
+    else w.nextCheck = S.tick + Math.floor(rand(8,20));
+  } else if(w.condition === 'cloudy'){
+    const r = Math.random();
+    if(r < 0.35){ w.condition='rainy'; w.rainTicks = Math.floor(rand(3,10)); toast('🌧️ 开始降雨！土壤湿度将上升，气温下降，病虫害风险增加',3000); }
+    else if(r < 0.55){ w.condition='storm'; w.rainTicks = Math.floor(rand(2,5)); toast('⛈️ 暴雨来袭！土壤湿度暴增，注意防涝！',3500); }
+    else { w.condition='sunny'; w.nextCheck = S.tick + Math.floor(rand(8,18)); }
+  }
+}
+
+function weatherEffect(){
+  const cfg = WEATHER_CFG[S.weather.condition];
+  for(const c of S.cells){
+    c.moisture = clamp(c.moisture + cfg.moistDelta, 0, 100);
+  }
+  return cfg;
+}
+
+/* ======================= 历史数据记录 ======================= */
+const HIST_MAX = 300;
+function recordHistory(){
+  const h = S.history, t = S.tick;
+  h.global.temp.push({t, v: S.globals.airTemp});
+  h.global.light.push({t, v: S.globals.light});
+  h.global.airHum.push({t, v: S.globals.airHum});
+  for(let i=0;i<N;i++){
+    const c = S.cells[i];
+    h.cells[i].moisture.push({t, v: c.moisture});
+    h.cells[i].soilTemp.push({t, v: c.soilTemp});
+    h.cells[i].fertility.push({t, v: c.fertility});
+    h.cells[i].ph.push({t, v: c.ph});
+    h.cells[i].pests.push({t, v: c.pests});
+  }
+  if(h.global.temp.length > HIST_MAX){
+    for(const k of ['temp','light','airHum']) h.global[k] = h.global[k].slice(-HIST_MAX);
+    for(let i=0;i<N;i++) for(const k of ['moisture','soilTemp','fertility','ph','pests']) h.cells[i][k] = h.cells[i][k].slice(-HIST_MAX);
+  }
+}
+
+/* ======================= 降雨视觉效果 ======================= */
+let rainPool = [];
+const RAIN_POOL_SIZE = 80;
+function initRainPool(){
+  const rainEl = $('rain');
+  rainEl.innerHTML = '';
+  rainPool = [];
+  for(let i=0;i<RAIN_POOL_SIZE;i++){
+    const d = document.createElement('div');
+    d.className = 'raindrop';
+    d.style.display = 'none';
+    rainEl.appendChild(d);
+    rainPool.push(d);
+  }
+}
+function updateRainVisual(){
+  const isRain = S.weather.condition === 'rainy' || S.weather.condition === 'storm';
+  const intensity = S.weather.condition === 'storm' ? 1 : (S.weather.condition === 'rainy' ? 0.55 : 0);
+  const count = Math.floor(RAIN_POOL_SIZE * intensity);
+  const scene = $('scene');
+  scene.classList.toggle('raining', S.weather.condition === 'rainy' && S.globals.isDay);
+  scene.classList.toggle('storm', S.weather.condition === 'storm');
+  if(S.weather.condition === 'rainy' && !S.globals.isDay) scene.classList.add('raining');
+  if(S.weather.condition === 'storm' && !S.globals.isDay) scene.classList.add('storm');
+  for(let i=0;i<RAIN_POOL_SIZE;i++){
+    const d = rainPool[i];
+    if(i < count){
+      d.style.display = 'block';
+      d.style.left = rand(0,100)+'%';
+      d.style.top = rand(-10,10)+'%';
+      const dur = S.weather.condition==='storm' ? rand(0.3,0.6) : rand(0.5,0.9);
+      const h = S.weather.condition==='storm' ? rand(16,28) : rand(10,20);
+      d.style.height = h+'px';
+      d.style.animationDuration = dur+'s';
+      d.style.animationDelay = rand(0,0.5)+'s';
+      d.className = 'raindrop fall';
+    } else {
+      d.style.display = 'none';
+      d.className = 'raindrop';
+    }
+  }
+  if(!isRain){
+    scene.classList.remove('raining','storm');
+  }
+}
+
+/* ======================= 核心仿真引擎 ======================= */
+function updateGlobals(){
+  const h=S.hour, isDay = h>=6 && h<18;
+  S.globals.isDay = isDay;
+  const wCfg = WEATHER_CFG[S.weather.condition];
+  const rawLight = isDay ? Math.round(100*Math.sin(Math.PI*(h-6)/12)) : 0;
+  S.globals.light = Math.round(rawLight * wCfg.lightMult);
+  S.globals.airTemp = Math.round((20 + 8*Math.cos(2*Math.PI*(h-14)/24) + S.drift + wCfg.tempDelta)*10)/10;
+  let sum=0; for(const c of S.cells) sum+=c.moisture;
+  const avg = sum/S.cells.length;
+  S.globals.airHum = Math.round(clamp(48 + avg*0.25 + (isDay?6:18) + (S.weather.condition==='rainy'?15:S.weather.condition==='storm'?25:0), 30, 99));
+}
+function cellLight(cell){
+  let l=S.globals.light;
+  for(const d of cell.devices) if(d.category==='actuator'&&d.kind==='growLight'&&d.on) l=Math.max(l,72);
+  return l;
+}
+function cellTemp(cell){
+  let t=S.globals.airTemp;
+  for(const d of cell.devices) if(d.category==='actuator'&&d.on){ if(d.kind==='vent') t-=4; }
+  if(cell.cool>0) t-=1;
+  return t;
+}
+function applyActuator(cell,d){
+  switch(d.kind){
+    case 'moistCtl':{
+      // 双向湿度控制：方向由目标控制引擎写入 _dir（'low'=补水 / 'high'=排水）
+      if(d._dir==='high'){ cell.moisture-=5.5; if(cell.moisture<12) waste(1); }
+      else { cell.moisture+=2.2; if(cell.moisture>88) waste(1); }
+      break;
+    }
+    case 'fertPump': cell.fertility+=2.4; if(cell.fertility>92) waste(1); break;
+    case 'growLight': break;
+    case 'vent': cell.soilTemp-=0.5; cell.pests-=1.0; cell.moisture-=1.0; break;
+    case 'soilHeat': cell.soilTemp+=1.4; break;
+    case 'phAdj':{
+      // 目标PH：优先用规则设定的目标值与波动范围；未设定则自动取所种作物适宜区间中点（空地回归7.0）
+      const phTgt=(typeof d.phTarget==='number')?d.phTarget:(cell.crop?(CROPS[cell.crop.type].ph[0]+CROPS[cell.crop.type].ph[1])/2:7.0);
+      const phTol=(typeof d.phTol==='number')?d.phTol:0.3;
+      if(cell.ph>phTgt+phTol) cell.ph=Math.max(phTgt,cell.ph-0.035);
+      else if(cell.ph<phTgt-phTol) cell.ph=Math.min(phTgt,cell.ph+0.035);
+      break;
+    }
+    case 'pestLamp': cell.pests-=3.6; break;
+  }
+}
+function waste(n){ S.stats.waste += n; }
+function envStep(cell){
+  const g=S.globals;
+  const wCfg = WEATHER_CFG[S.weather.condition];
+  const evap = (g.light>0?0.34:0.11) * (0.7 + (g.airTemp-8)/30);
+  cell.moisture = clamp(cell.moisture - evap, 0, 100);
+  cell.fertility = clamp(cell.fertility - (cell.crop?0.16:0.02), 0, 100);
+  const cropPestM = cell.crop ? (CROPS[cell.crop.type].pestMul||1) : 1;
+  const hotHumid = (g.airTemp>25 && cell.moisture>60) ? 1.6*wCfg.pestMult : wCfg.pestMult;
+  cell.pests = clamp(cell.pests + 0.18*hotHumid*cropPestM, 0, 100);
+  if(cell.cool>0) cell.cool--;
+  cell.soilTemp += (g.airTemp - cell.soilTemp)*0.045;
+  if(cell.fertility>88){ cell.ph = clamp(cell.ph + 0.005, 3, 11); }
+  else { cell.ph += (7.0-cell.ph)*0.002; }
+  for(const d of cell.devices){ if(d.category==='actuator' && d.on) applyActuator(cell,d); }
+  cell.moisture=clamp(cell.moisture,0,100);
+  cell.fertility=clamp(cell.fertility,0,100);
+  cell.pests=clamp(cell.pests,0,100);
+  cell.soilTemp=clamp(cell.soilTemp,-5,60);
+}
+function cropStep(cell){
+  const c=cell.crop; if(!c) return;
+  const cd=CROPS[c.type];
+  const effLight=cellLight(cell);
+  const airT=cellTemp(cell), soilT=cell.soilTemp;
+
+  const comfTemp = 1 - clamp((airT - cd.temp[1])/7, 0, 1) - clamp((cd.temp[0] - soilT)/7, 0, 1);
+  const comfMoist = 1 - clamp((cd.moist[0]-cell.moisture)/10,0,1) - clamp((cell.moisture-cd.moist[1])/10,0,1);
+  const effFert=(cell.moisture<22)?0:cell.fertility;
+  const comfFert = 1 - clamp((cd.fert[0]-effFert)/10,0,1) - clamp((effFert-cd.fert[1])/10,0,1);
+  const comfLight = 1 - clamp((cd.light[0]-effLight)/12,0,1) - clamp((effLight-cd.light[1])/12,0,1);
+  const phOk = (cell.ph>=cd.ph[0]-0.25 && cell.ph<=cd.ph[1]+0.25);
+  const comfPh = phOk ? 1 : 0.6;
+  const comfPest = 1 - clamp((cell.pests-35)/65,0,1);
+
+  const growComfort = Math.max(0, Math.min(comfTemp, comfMoist, comfFert, comfLight, comfPh, comfPest));
+  if(effLight>2 && phOk){
+    c.growth = clamp(c.growth + cd.growth*GROW_SPEED*growComfort*(0.4+0.6*c.health/100), 0, 100);
+  }
+
+  const envComfort = Math.max(0, Math.min(comfTemp, comfMoist, comfFert, comfPh, comfPest));
+  const stress = 1 - envComfort;
+  const pestDamage = clamp((cell.pests-40)/60,0,1);
+  const totalStress = Math.max(stress, pestDamage*0.9);
+  if(totalStress > 0.05){ c.health = clamp(c.health - totalStress*cd.sens*1.6, 0, 100); }
+  else { c.health = clamp(c.health + 0.6/cd.sens, 0, 100); }
+
+  if(c.health<=0){
+    cell.deadCrop=c.type; cell.crop=null;
+    cell.pests=clamp(cell.pests+8,0,100);
+    S.stats.dead++; S.stats.lossValue += cd.value;
+    toast('💀 网格('+cell.r+','+cell.c+')的'+cd.name+'枯萎死亡，土壤遗留问题需先处理',3000);
+  }
+}
+function cellStressors(cell){
+  const out=[];
+  if(!cell.crop) return out;
+  const cd=CROPS[cell.crop.type];
+  const airT=cellTemp(cell), soilT=cell.soilTemp;
+  if(airT>cd.temp[1]+1) out.push('高温灼伤');
+  if(soilT<cd.temp[0]-1) out.push('低温冻害');
+  if(cell.moisture<cd.moist[0]) out.push('干旱缺水');
+  if(cell.moisture>cd.moist[1]) out.push('积水涝害');
+  const effFert=(cell.moisture<22)?0:cell.fertility;
+  if(effFert<cd.fert[0]) out.push('缺肥');
+  if(effFert>cd.fert[1]) out.push('肥害烧根');
+  if(cell.ph<cd.ph[0]-0.25 || cell.ph>cd.ph[1]+0.25) out.push('PH不适(僵苗)');
+  if(cell.pests>40) out.push('病虫害');
+  return out;
+}
+
+/* ======================= 控制器规则引擎 ======================= */
+function opTxt(op){ return op==='<='?'≤':op==='>='?'≥':op; }
+function ctrlLog(d,msg,cls){ d.log=d.log||[]; d.log.push({msg,cls:cls||'l'}); if(d.log.length>80) d.log.shift(); }
+function runControllers(){
+  for(const d of S.devices){
+    if(d.category!=='controller') continue;
+    const netId=deviceNetwork(d);
+    d._faults=[];
+    if(!netId){ d._faults.push('网络缺失，通信失败'); continue; }
+    const sensors=S.devices.filter(x=>x.category==='sensor'&&deviceNetwork(x)===netId);
+    const actuators=S.devices.filter(x=>x.category==='actuator'&&deviceNetwork(x)===netId);
+    if(!sensors.length) d._faults.push('没有可用传感器，无法运行控制逻辑');
+    if(!actuators.length) d._faults.push('没有可用执行器，规则无法输出动作');
+    const states={};
+    // ===== 🎯 分格目标控制：先于手动规则执行，手动规则可覆盖 =====
+    if(d.cellCfg){
+      for(const cid in d.cellCfg){
+        const cCell=S.cells[+cid];
+        if(!cCell) continue;
+        if(!covNetworks(cCell.id).some(n=>n.id===netId)) continue;
+        const cfgs=d.cellCfg[cid];
+        for(const def of CTRL_DEFS){
+          const cfg=cfgs[def.metric];
+          if(!cfg||!cfg.on) continue;
+          const senOk=cCell.devices.some(x=>x.category==='sensor'&&SENSORS[x.kind].metric===def.metric&&deviceNetwork(x)===netId);
+          if(!senOk){ d._faults.push('格('+cCell.r+','+cCell.c+')'+def.label+'：该格无对应传感器'); continue; }
+          const val=metricValue(cCell,def.metric);
+          const dir=(val<cfg.target-cfg.tol)?'low':((val>cfg.target+cfg.tol)?'high':'ok');
+          const cellActs=cCell.devices.filter(x=>x.category==='actuator'&&deviceNetwork(x)===netId);
+          const pick=(kinds)=>{ for(const k of kinds){ if(cellActs.some(a=>a.kind===k)) return k; } return null; };
+          let lowK=null, highK=null;
+          if(def.both&&def.both.length){ highK=pick(def.both); }
+          else { lowK=pick(def.low||[]); highK=pick(def.high||[]); }
+          if(!lowK&&!highK){ d._faults.push('格('+cCell.r+','+cCell.c+')'+def.label+'：该格无可用执行器'); continue; }
+          if(cfg._dir!==dir){
+            cfg._dir=dir;
+            const actNm=(dir==='low'&&lowK)?ACTUATORS[lowK].name:((dir==='high'&&highK)?ACTUATORS[highK].name:'');
+            ctrlLog(d,'【'+fmtClock(S.hour)+'】🎯 格('+cCell.r+','+cCell.c+') '+def.label+'='+fmtMetric(def.metric,val)+'（目标'+cfg.target+'±'+cfg.tol+'）'+(dir==='ok'?'进入区间，停止调控':'越限，启动'+actNm),'l');
+          }
+          for(const a of cellActs){
+            const isLow=(lowK&&a.kind===lowK), isHigh=(highK&&a.kind===highK);
+            if(!isLow&&!isHigh) continue;
+            let want=(dir==='low'&&isLow)||(dir==='high'&&isHigh);
+            if(def.both&&def.both.includes(a.kind)&&dir!=='ok'){
+              want=true;
+              a._dir=dir;
+              if(a.kind==='phAdj'){ a.phTarget=cfg.target; a.phTol=cfg.tol; }
+            }
+            if(states[a.id]===undefined) states[a.id]=(want?'on':'off');
+          }
+        }
+      }
+    }
+    for(const act of actuators){
+      if(states[act.id]!==undefined){
+        const want = states[act.id]==='on';
+        if(want && !act.on) S.stats.auto++;
+        act.on = want;
+      }
+    }
+  }
+}
+
+/* ======================= 随机市场特惠 ======================= */
+function updateMarket(){
+  const m=S.market; if(!m) return;
+  if(m.active){
+    m.remain--;
+    if(m.remain<=0){ m.active=false; m.mult=1; m.next=S.tick+Math.floor(rand(240,480)); toast('🛒 特惠结束，商店价格已恢复正常',3000); }
+    return;
+  }
+  if(S.tick < m.next) return;
+  m.active=true;
+  m.mult=Math.round(rand(5,9))/10;
+  m.remain=Math.floor(rand(20,45));
+  if(S.running) stopRun();
+  S._resumeAfterMarket=true;
+  render();
+  showMarketModal();
+}
+function showMarketModal(){
+  const m=S.market;
+  const secs=Math.round(m.remain*Math.max(60,Math.round(1000/simSpeed))/1000);
+  $('marketModal').innerHTML='<button class="close" onclick="marketDismiss()">×</button>'+
+    '<h3 style="text-align:center">🔥 限时特惠</h3>'+
+    '<div class="market-hero">'+(m.mult*10)+' 折</div>'+
+    '<div class="market-sub">商店「购入价」全场特惠 · 种子与物联网硬件均享折后价</div>'+
+    '<div class="market-timer">⏳ 还剩 '+m.remain+' 刻（约 '+secs+' 秒）</div>'+
+    '<div class="market-actions"><button class="go" onclick="marketGoShop()">🛒 前往商店</button><button class="ok" onclick="marketDismiss()">我知道了</button></div>';
+  $('ovMarket').classList.add('show');
+}
+function marketGoShop(){
+  $('ovMarket').classList.remove('show');
+  S._resumeAfterMarket=false;
+  S._resumeAfterShop=true;
+  openShop();
+}
+function marketDismiss(){
+  $('ovMarket').classList.remove('show');
+  if(S._resumeAfterMarket){ S._resumeAfterMarket=false; simSpeed=1; updateSpeedUI(); if(!S.running) startRun(); }
+}
+function discCost(base){
+  return (S.market&&S.market.active)?Math.max(1,Math.round(base*S.market.mult)):base;
+}
+
+/* ======================= 主循环 ======================= */
+let timer=null;
+function tick(){
+  S.tick++;
+  S.hour=(S.hour+1)%24;
+  if(S.hour===0) S.day++;
+  if(S.tick%12===0) S.drift=clamp(S.drift+rand(-0.5,0.5),-3,3);
+  updateWeather();
+  updateMarket();
+  const wCfg = weatherEffect();
+  updateGlobals();
+  runControllers();
+  for(const c of S.cells) envStep(c);
+  for(const c of S.cells) cropStep(c);
+  recordHistory();
+  if(S.mode==='challenge'){ S.timeLeft--; if(S.timeLeft<=0){ S.timeLeft=0; stopRun(); showReport(true); } }
+  render();
+  updateRainVisual();
+}
+function startRun(){ if(S.running) return; S.running=true; taskHook(); runLoop(); $('btnRun').textContent='⏸ 暂停模拟'; }
+function runLoop(){ if(!S.running) return; tick(); if(!S.running) return; timer=setTimeout(runLoop, Math.max(60, Math.round(1000/simSpeed))); }
+function stopRun(){ S.running=false; clearTimeout(timer); timer=null; $('btnRun').textContent='▶ 开启环境模拟'; }
+
+/* ======================= 渲染 ======================= */
+function fmtCD(sec){ const m=Math.floor(sec/60),s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+function nearestNet(cellId){
+  const nets=covNetworks(cellId); if(!nets.length) return null;
+  let best=nets[0];
+  for(const n of nets){ if(dist(cellOf(cellId),cellOf(n.cellId)) < dist(cellOf(cellId),cellOf(best.cellId))) best=n; }
+  return best;
+}
+function render(){
+  $('clockTxt').textContent=fmtClock(S.hour);
+  $('dayPill').innerHTML = S.globals.isDay ? '☀️ <b>白天</b>' : '🌙 <b>黑夜</b>';
+  $('goldTxt').textContent=S.gold;
+  $('leftGold').textContent='🪙 '+S.gold;
+  $('gpClock').textContent='第'+S.day+'天 '+fmtClock(S.hour);
+  const wCfg = WEATHER_CFG[S.weather.condition];
+  $('gpWeather').textContent = wCfg.emoji+' '+wCfg.name;
+  $('gpTemp').textContent=S.globals.airTemp+' ℃';
+  $('gpLight').textContent=S.globals.light;
+  let cropCnt=0; for(const c of S.cells) if(c.crop) cropCnt++;
+  $('gpCrop').textContent=cropCnt;
+  $('gpHarv').textContent=S.stats.harvested;
+  $('scoreVal').textContent = Math.max(0, S.stats.harvestValue - S.stats.lossValue - Math.round(S.stats.waste));
+  $('scene').classList.toggle('night', !S.globals.isDay);
+  if(S.mode==='challenge'){ $('cdRow').style.display='flex'; $('cdTxt').textContent=fmtCD(S.timeLeft); $('cdTxt').className='countdown '+(S.timeLeft>60?'ok':''); }
+  for(let i=0;i<N;i++) renderCell(S.cells[i], cellEls[i]);
+  renderCellPanel();
+  refreshCtrlModalLive();
+  if(S._lastGold!==S.gold){ S._lastGold=S.gold; renderShop(); }
+  refreshQuest();
+  const _ripe=S.cells.reduce((a,c)=>a+(c.crop&&c.crop.growth>=100?1:0),0);
+  const _ha=$('btnHarvestAll'); if(_ha){ _ha.classList.toggle('no', _ripe===0); const _hc=$('harvestAllCnt'); if(_hc) _hc.textContent=_ripe; }
+  const _mk=S.market, _mt=$('marketTag');
+  if(_mt){ if(_mk&&_mk.active){ _mt.style.display='inline-flex'; _mt.innerHTML='🔥 '+( _mk.mult*10)+'折 · 剩 '+_mk.remain+' 刻'; } else { _mt.style.display='none'; } }
+}
+function renderCell(cell,el){
+  const m=cell.moisture;
+  let soil = m<15?'#c99b6e' : m<40?'#b5874f' : m<70?'#9a6a3a' : '#7a4f28';
+  el.style.background=soil;
+  el.classList.toggle('dry', m<18);
+  el.classList.toggle('wet', m>78);
+  el.classList.toggle('sel-cell', S.selCell===cell.id);
+  const net=nearestNet(cell.id);
+  el.querySelector('.cov').className='cov '+(net?(net.kind==='wifi'?'wifi':'g5'):'');
+  const cropEl=el.querySelector('.crop');
+  if(cell.crop){
+    const cd=CROPS[cell.crop.type];
+    cropEl.style.display='block';
+    cropEl.textContent=cropEmoji(cell.crop);
+    cropEl.style.fontSize=cropEmojiSize(cell.crop.growth)+'px';
+    let cls='crop';
+    if(cell.fertility<cd.fert[0]) cls+=' stress-yellow';
+    if(cell.moisture<cd.moist[0] || cell.crop.health<35) cls+=' wilt';
+    cropEl.className=cls;
+  } else if(cell.deadCrop){
+    cropEl.style.display='block'; cropEl.textContent='🥀'; cropEl.style.fontSize='26px'; cropEl.className='crop dead';
+  } else { cropEl.style.display='none'; }
+  const bar=el.querySelector('.stage-bar'), bi=el.querySelector('.stage-bar i');
+  if(cell.crop){ bar.style.display='block'; bi.style.width=cell.crop.growth+'%'; bi.style.background=cell.crop.growth>=100?'var(--sun)':'var(--leaf)'; }
+  else bar.style.display='none';
+  const ripe=el.querySelector('.badge-ripe');
+  ripe.style.display = (cell.crop && cell.crop.growth>=100) ? 'flex' : 'none';
+  const devEl=el.querySelector('.devices'); devEl.innerHTML='';
+  const items=[];
+  for(const n of S.networks) if(n.cellId===cell.id) items.push({emoji:NETWORKS[n.kind].emoji,ring:n.kind,work:false,val:null,title:NETWORKS[n.kind].name});
+  for(const d of cell.devices){
+    const dnet=nearestNet(d.cellId);
+    if(d.category==='controller'){ items.push({emoji:CONTROLLER.emoji,ring:dnet?dnet.kind:null,work:false,val:null,title:CONTROLLER.name}); }
+    else if(d.category==='sensor'){ items.push({emoji:SENSORS[d.kind].emoji,ring:dnet?dnet.kind:null,work:false,val:dnet?fmtMetric(SENSORS[d.kind].metric,readSensor(d)):null,title:SENSORS[d.kind].name}); }
+    else { items.push({emoji:ACTUATORS[d.kind].emoji,ring:dnet?dnet.kind:null,work:d.on,val:null,title:ACTUATORS[d.kind].name}); }
+  }
+  for(const it of items){
+    const s=document.createElement('span');
+    s.className='dv'+(it.ring?(' ring-'+it.ring):'')+(it.work?' work':'');
+    s.textContent=it.emoji+(it.val!==null&&it.val!==undefined?String(it.val):'');
+    if(it.title) s.title=it.title;
+    devEl.appendChild(s);
+  }
+  devEl.style.display = showDevices ? 'flex' : 'none';
+  const nd=el.querySelector('.netdot');
+  const centerNet=S.networks.find(n=>n.cellId===cell.id);
+  if(centerNet){ nd.style.display='block'; nd.className='netdot '+centerNet.kind; }
+  else nd.style.display='none';
+  const pm=el.querySelector('.pestmark');
+  pm.style.display = cell.pests>40 ? 'block' : 'none';
+  if(cell.pests>40) pm.textContent = cell.pests>70 ? '🕸️' : '🐛';
+}
+function updateViewToggle(){
+  const b=$('viewToggle');
+  if(showDevices){ b.textContent='📡 设备视图'; b.classList.add('on'); }
+  else { b.textContent='👁 观察作物'; b.classList.remove('on'); }
+}
+function closeCellPanel(){ S.selCell=null; render(); }
+function renderCellPanel(){
+  const p=$('cellPanel');
+  if(S.selCell===null){ p.style.display='none'; return; }
+  const cell=cellOf(S.selCell);
+  p.style.display='block';
+  let cropHtml='';
+  if(cell.crop){
+    const cd=CROPS[cell.crop.type];
+    const stressors=cellStressors(cell);
+    let stLine = stressors.length
+      ? '<div style="font-size:11px;color:var(--danger);font-weight:700">⚠️ '+stressors.join('、')+'，健康持续下降</div>'
+      : '<div style="font-size:11px;color:var(--leaf-deep)">✅ 生长正常'+(cell.crop.health<98?'，健康恢复中':'')+'</div>';
+    if(!S.globals.isDay) stLine += '<div style="font-size:11px;color:#33477a">🌙 黑夜：停止光合作用（生长停滞）</div>';
+    const ideal='<div style="font-size:10px;color:var(--ink-soft);line-height:1.5;margin-top:2px">适宜：温度'+cd.temp[0]+'~'+cd.temp[1]+'℃ · 湿度'+cd.moist[0]+'~'+cd.moist[1]+' · 光照'+cd.light[0]+'~'+cd.light[1]+' · 肥力'+cd.fert[0]+'~'+cd.fert[1]+' · PH'+cd.ph[0]+'~'+cd.ph[1]+'</div>';
+    cropHtml='<div style="font-size:14px;font-weight:700">'+cd.emoji+' '+cd.name+' · '+cropStage(cell.crop.growth)+'</div>'+
+      '<div style="font-size:11px;color:var(--ink-soft)">生长 '+Math.round(cell.crop.growth)+'% · 健康 '+Math.round(cell.crop.health)+'%</div>'+stLine+ideal;
+  } else if(cell.deadCrop){
+    cropHtml='<div style="font-size:14px;font-weight:700;color:var(--danger)">🥀 '+CROPS[cell.deadCrop].name+'（已死亡）</div><div style="font-size:11px;color:var(--ink-soft)">需除虫、调节湿度或用「土壤酸碱度控制器」调PH，土壤恢复后才能播种</div>';
+  } else { cropHtml='<div style="font-size:13px;color:var(--ink-soft)">空闲地块</div>'; }
+  const rows=[
+    ['气温(环境)','airTemp', S.globals.airTemp+' ℃'],
+    ['光照(环境)','light', S.globals.light],
+    ['地温','soilTemp', Math.round(cell.soilTemp)+' ℃'],
+    ['土壤湿度','moisture', Math.round(cell.moisture)],
+    ['肥力','fertility', Math.round(cell.fertility)],
+    ['PH酸碱度','ph', cell.ph.toFixed(1)],
+    ['病虫害','pests', Math.round(cell.pests)],
+  ];
+  let tb='<table>';
+  for(const [k,metric,v] of rows){
+    tb+='<tr><td class="k">'+k+'</td><td class="v">'+v+'</td></tr>';
+  }
+  tb+='</table>';
+  let acts='<div class="acts">';
+  if(cell.crop && cell.crop.growth>=100){ acts+='<button class="gold" onclick="harvestCell('+cell.id+')">🌾 收获</button>'; }
+  if(!cell.crop && !cell.deadCrop){ acts+='<button class="ghost" onclick="quickPlant('+cell.id+')">🌱 播种</button>'; }
+  acts+='<button class="ghost" onclick="closeCellPanel()">关闭</button>';
+  acts+='</div>';
+  let devs='<div class="devlist">';
+  for(const n of S.networks) if(n.cellId===cell.id) devs+='<div class="di">'+NETWORKS[n.kind].emoji+' '+NETWORKS[n.kind].name+'<span style="color:var(--ink-soft)">（不可拆除）</span></div>';
+  for(const d of cell.devices){
+    const nm = d.category==='controller'?CONTROLLER.name : d.category==='sensor'?SENSORS[d.kind].name : ACTUATORS[d.kind].name;
+    const em = d.category==='controller'?CONTROLLER.emoji : d.category==='sensor'?SENSORS[d.kind].emoji : ACTUATORS[d.kind].emoji;
+    devs+='<div class="di">'+em+' '+nm+(d.category==='controller'?'<button onclick="openController(\''+d.id+'\')">配置</button>':'')+'<button onclick="removeDevice(\''+d.id+'\')">拆除</button></div>';
+  }
+  if(!devs.length && !S.networks.some(n=>n.cellId===cell.id)) devs+='<div style="color:var(--ink-soft)">无设备</div>';
+  devs+='</div>';
+  p.innerHTML='<h4>📍 网格('+cell.r+','+cell.c+')</h4>'+cropHtml+tb+acts+devs;
+}
+function removeDevice(id){
+  const d=getDevice(id); if(!d) return;
+  const cell=cellOf(d.cellId);
+  S.devices=S.devices.filter(x=>x.id!==id);
+  cell.devices=cell.devices.filter(x=>x.id!==id);
+  toast('🗑 已拆除（硬件为消耗品，不可回收）');
+  renderCellPanel();
+}
+
+/* ======================= 数据看板 ======================= */
+let chartMode = 'global';
+let chartCellId = 0;
+function openChart(){
+  $('ovChart').classList.add('show');
+  renderChartModal();
+}
+function closeChart(){ $('ovChart').classList.remove('show'); }
+function renderChartModal(){
+  const m = $('chartModal');
+  const cellOpts = S.cells.map((c,i)=>{
+    const label = c.crop ? CROPS[c.crop.type].name+'@('+c.r+','+c.c+')' : (c.deadCrop ? '💀@('+c.r+','+c.c+')' : '空('+c.r+','+c.c+')');
+    return '<option value="'+i+'"'+(chartMode!==''+i?'':' selected')+'>'+label+'</option>';
+  }).join('');
+  const isG = chartMode === 'global';
+  m.innerHTML =
+    '<button class="close" onclick="closeChart()">×</button>'+
+    '<h3>📈 数据看板 · 历史曲线</h3>'+
+    '<div class="sub">开启环境模拟后自动记录，最近 '+HIST_MAX+' 个时刻的数据</div>'+
+    '<div class="chart-ctrl">'+
+      '<div class="chart-tabs" id="chartTabGrp">'+
+        '<button data-cm="global" class="'+(isG?'on':'')+'">🌍 全局环境</button>'+
+        '<button data-cm="cell" class="'+(isG?'':'on')+'">📍 单格数据</button>'+
+      '</div>'+
+      '<select id="chartCellSel" style="'+(isG?'display:none':'')+'">'+cellOpts+'</select>'+
+    '</div>'+
+    '<canvas id="chartCanvas"></canvas>'+
+    '<div class="chart-legend" id="chartLegend"></div>'+
+    '<div style="text-align:right;margin-top:12px"><button class="btn-hdr" onclick="closeChart()">关闭</button></div>';
+  $('chartTabGrp').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-cm]'); if(!b) return;
+    chartMode = b.dataset.cm==='global'?'global':String($('chartCellSel')?+$('chartCellSel').value:0);
+    renderChartModal();
+  });
+  const sel=$('chartCellSel');
+  if(sel) sel.onchange=()=>{ chartMode=String(+sel.value); drawChart(); };
+  setTimeout(drawChart, 30);
+}
+function drawChart(){
+  const canvas=$('chartCanvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+  ctx.scale(dpr,dpr);
+  const W=rect.width, H=rect.height;
+  const pad={top:22,right:18,bottom:28,left:48};
+  const cw=W-pad.left-pad.right, ch=H-pad.top-pad.bottom;
+
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#f8f5ee'; ctx.fillRect(pad.left,pad.top,cw,ch);
+
+  let series=[];
+  if(chartMode==='global'){
+    series=[
+      {data:S.history.global.temp, color:'#e85d5d', label:'气温(℃)'},
+      {data:S.history.global.light, color:'#ffc94d', label:'光照'},
+      {data:S.history.global.airHum, color:'#4aa3df', label:'空气湿度(%)'},
+    ];
+  } else {
+    const ci=+chartMode, hd=S.history.cells[ci];
+    series=[
+      {data:hd.moisture, color:'#4aa3df', label:'土壤湿度(%)'},
+      {data:hd.soilTemp, color:'#e85d5d', label:'地温(℃)'},
+      {data:hd.fertility, color:'#58b368', label:'肥力'},
+      {data:hd.ph, color:'#a66bc0', label:'PH'},
+      {data:hd.pests, color:'#f0793d', label:'病虫害'},
+    ];
+  }
+
+  let allPts=series.flatMap(s=>s.data);
+  if(!allPts.length){
+    ctx.fillStyle='#999'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('暂无数据 — 开启环境模拟后自动记录',W/2,H/2);
+    renderChartLegend(series); return;
+  }
+
+  let tMin=Infinity,tMax=-Infinity,vMin=Infinity,vMax=-Infinity;
+  for(const d of allPts){ if(d.t<tMin)tMin=d.t; if(d.t>tMax)tMax=d.t; if(d.v<vMin)vMin=d.v; if(d.v>vMax)vMax=d.v; }
+  if(tMax===tMin) tMax=tMin+1;
+  if(vMax===vMin){vMin-=1;vMax+=1;}
+  const vp=(vMax-vMin)*0.08; vMin-=vp; vMax+=vp;
+
+  ctx.strokeStyle='#e8e0d0'; ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const y=pad.top+ch*i/5;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cw,y); ctx.stroke();
+    ctx.fillStyle='#aaa'; ctx.font='10px sans-serif'; ctx.textAlign='right';
+    ctx.fillText((vMax-(vMax-vMin)*i/5).toFixed(1),pad.left-6,y+4);
+  }
+  ctx.fillStyle='#aaa'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  for(let i=0;i<=4;i++){
+    const x=pad.left+cw*i/4;
+    const tv=Math.round(tMin+(tMax-tMin)*i/4);
+    ctx.fillText('t'+tv,x,H-6);
+  }
+
+  for(const s of series){
+    if(!s.data.length) continue;
+    ctx.strokeStyle=s.color; ctx.lineWidth=2; ctx.lineJoin='round';
+    ctx.beginPath();
+    let first=true;
+    for(const d of s.data){
+      const x=pad.left+(d.t-tMin)/(tMax-tMin)*cw;
+      const y=pad.top+(1-(d.v-vMin)/(vMax-vMin))*ch;
+      if(first){ctx.moveTo(x,y);first=false;} else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  renderChartLegend(series);
+}
+function renderChartLegend(series){
+  const el=$('chartLegend'); if(!el) return;
+  el.innerHTML=series.map(s=>'<div class="lgi"><div class="lgd" style="background:'+s.color+'"></div>'+s.label+'</div>').join('');
+}
+
+/* ======================= 新手任务引导 ======================= */
+let TUT={active:false,stage:'basic',idx:0,done:{},folded:false,shopOpened:false};
+let MEDALS={basic:false,adv:false};
+function netSetOk(){
+  for(const n of S.networks){
+    let sen=false,ctl=false,act=false;
+    for(const d of S.devices){
+      if(deviceNetwork(d)===n.id){
+        if(d.category==='sensor')sen=true;
+        else if(d.category==='controller')ctl=true;
+        else if(d.category==='actuator')act=true;
+      }
+    }
+    if(sen&&ctl&&act) return true;
+  }
+  return false;
+}
+const TUT_TASKS={
+  basic:[
+    {id:'openShop',ic:'🛒',title:'打开商店',tip:'点击右上角橙色「🛒 商店」大按钮（打开时会自动暂停模拟）',target:'#btnShop',
+      ok:()=>TUT.shopOpened},
+    {id:'buySeed',ic:'🌱',title:'购买一包种子',tip:'在商店「种子」分类点「购买」。推荐小麦：10金币，好养活',target:null,
+      ok:()=>Object.values(S.inventory.seed).some(n=>n>0)},
+    {id:'plantSeed',ic:'🌾',title:'播种到农田',tip:'① 点左侧「种子库存」里的种子；② 点中间任意一块空地',target:'#seedChips',
+      ok:()=>S.cells.some(c=>c.crop)},
+    {id:'startSim',ic:'▶',title:'开启环境模拟',tip:'点顶栏「▶ 开启环境模拟」——时间流动作物才会生长',target:'#btnRun',
+      ok:()=>S.running},
+    {id:'harvest',ic:'🧺',title:'收获第一茬作物',tip:'作物长满进度条出现 🧺 图标后点击收获；等待时可调 8× 加速',target:null,
+      ok:()=>S.stats.harvested>0},
+  ],
+  adv:[
+    {id:'deployNet',ic:'📡',title:'部署一套物联网',tip:'买齐并部署到同一片覆盖内：WiFi + 湿度传感器 + 湿度控制器 + 控制器',target:'#btnShop',
+      ok:netSetOk},
+    {id:'addRule',ic:'🧠',title:'设定目标控制',tip:'点控制器「配置」→ 选一格 → 勾选指标（目标值已按作物预填）→ 💾保存本格设置',target:null,
+      ok:()=>S.devices.some(d=>d.category==='controller'&&d.cellCfg&&Object.keys(d.cellCfg).length>0)},
+    {id:'challenge',ic:'⏱',title:'体验5分钟挑战',tip:'顶栏切换到「5分钟挑战」模式开始比赛，比比谁的得分高！',target:'#modeToggle button[data-mode="challenge"]',
+      ok:()=>S.mode==='challenge'},
+  ],
+};
+function tutList(){ return TUT.stage==='adv'?TUT_TASKS.adv:TUT_TASKS.basic; }
+function taskHook(){
+  if(!TUT.active) return;
+  const L=tutList(); const t=L[TUT.idx];
+  if(t && t.ok()){
+    TUT.done[t.id]=true;
+    TUT.idx++;
+    toast('✅ 任务完成：'+t.title);
+    if(TUT.idx>=L.length){
+      if(TUT.stage==='basic'){ MEDALS.basic=true; showMedal('basic'); }
+      else { MEDALS.adv=true; showMedal('adv'); }
+      hideTaskSpot();
+    } else focusTask();
+    renderTaskPanel();
+  }
+}
+function startGuide(){
+  TUT.active=true; TUT.stage='basic'; TUT.idx=0; TUT.done={}; TUT.folded=false;
+  renderTaskPanel(); focusTask();
+  toast('🎯 跟着左侧「新手任务」一步步来吧！');
+}
+function focusTask(){
+  const sp=$('taskSpot');
+  const L=tutList(); const t=L[TUT.idx];
+  if(!TUT.active||!t||!t.target||TUT.folded){ sp.style.display='none'; return; }
+  const el=document.querySelector(t.target);
+  if(!el){ sp.style.display='none'; return; }
+  const r=el.getBoundingClientRect();
+  sp.style.left=(r.left-5)+'px'; sp.style.top=(r.top-5)+'px';
+  sp.style.width=r.width+'px'; sp.style.height=r.height+'px';
+  sp.style.display='block';
+}
+function hideTaskSpot(){ $('taskSpot').style.display='none'; }
+function toggleTaskPanel(){ TUT.folded=!TUT.folded; renderTaskPanel(); focusTask(); }
+function renderTaskPanel(){
+  const wrap=$('taskPanelWrap'); if(!wrap) return;
+  let head, body='';
+  if(TUT.active){
+    const L=tutList();
+    head='🎯 新手任务 <span class="tp">'+TUT.idx+' / '+L.length+'</span><span class="tw">▾</span>';
+    L.forEach((t,i)=>{
+      if(TUT.done[t.id]) body+='<div class="trow done"><span class="ic">✅</span><span class="tt">'+t.title+'</span></div>';
+      else if(i===TUT.idx) body+='<div class="trow cur"><span class="ic">▶</span><span><span class="tt">'+t.ic+' '+t.title+'</span><span class="tip">'+t.tip+'</span></span></div>';
+      else body+='<div class="trow lock"><span class="ic">🔒</span><span class="tt">'+t.title+'</span></div>';
+    });
+  } else {
+    head='🎯 新手任务 <span class="tp">'+(MEDALS.basic?'🎖️':'')+(MEDALS.adv?'🏅':'')+(!MEDALS.basic&&!MEDALS.adv?'待完成':'')+'</span><span class="tw">▾</span>';
+    body+='<div class="task-intro">跟着任务清单边玩边学，快速掌握种植与物联网自动化！</div>';
+    if(MEDALS.basic||MEDALS.adv){
+      body+='<div class="medal-chips">';
+      if(MEDALS.basic) body+='<span class="mc">🎖️ 基础农夫</span>';
+      if(MEDALS.adv) body+='<span class="mc">🏅 物联网工程师</span>';
+      body+='</div>';
+    }
+    if(MEDALS.basic&&!MEDALS.adv) body+='<button class="task-go" onclick="startAdv()">📡 继续进阶任务</button>';
+    body+='<button class="task-go" onclick="startGuide()">▶ '+(MEDALS.basic||MEDALS.adv?'重新挑战引导':'开始任务')+'</button>';
+  }
+  wrap.innerHTML='<div class="task-panel'+(TUT.folded?' folded':'')+'"><div class="task-head" onclick="toggleTaskPanel()">'+head+'</div><div class="task-body">'+body+'</div></div>';
+}
+function startAdv(){
+  TUT.active=true; TUT.stage='adv'; TUT.idx=0; TUT.folded=false;
+  renderTaskPanel(); focusTask();
+  toast('📡 进阶任务开启：组建你的物联网！');
+}
+function showMedal(kind){
+  const m=$('medalModal');
+  if(kind==='basic'){
+    m.innerHTML='<div style="text-align:center;font-size:56px;margin:6px 0">🎖️</div>'+
+    '<h3 style="text-align:center">获得勋章：基础农夫！</h3>'+
+    '<div class="sub" style="text-align:center">恭喜完成全部基础任务，你已经学会种植与收获了！</div>'+
+    '<div style="display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap">'+
+    '<button class="btn-hdr primary" onclick="medalToAdv()">📡 继续进阶任务</button>'+
+    '<button class="btn-hdr" onclick="medalOff()">先自由游玩</button></div>';
+  } else {
+    m.innerHTML='<div style="text-align:center;font-size:56px;margin:6px 0">🏅</div>'+
+    '<h3 style="text-align:center">获得勋章：物联网工程师！</h3>'+
+    '<div class="sub" style="text-align:center">你已完整掌握物联网「感知→传输→决策→执行」四层架构！</div>'+
+    '<div style="text-align:center;margin-top:14px"><button class="btn-hdr primary" onclick="medalOff()">太棒了！</button></div>';
+  }
+  $('ovMedal').classList.add('show');
+  confetti();
+}
+function medalToAdv(){ closeMedal(); startAdv(); }
+function medalOff(){ closeMedal(); TUT.active=false; TUT.folded=true; renderTaskPanel(); }
+function closeMedal(){ $('ovMedal').classList.remove('show'); }
+function confetti(){
+  const ems=['🌾','⭐','🎉','✨','🌱'];
+  for(let i=0;i<22;i++){
+    const s=document.createElement('span');
+    s.className='confetti';
+    s.textContent=ems[Math.floor(Math.random()*ems.length)];
+    s.style.left=rand(4,96)+'%';
+    s.style.animationDuration=rand(1.8,3.2)+'s';
+    s.style.animationDelay=rand(0,.6)+'s';
+    s.style.fontSize=rand(14,26)+'px';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),4200);
+  }
+}
+function showWelcome(){ $('welcomeOv').classList.add('show'); }
+function welcomeGo(){ $('welcomeOv').classList.remove('show'); startGuide(); }
+function welcomeSkip(){ $('welcomeOv').classList.remove('show'); toast('已跳过引导。随时可在「❓帮助」→「🎓 新手引导」重新打开！',4000); }
+
+/* ======================= 任务中心（右下角） ======================= */
+let questFolded=false, questSnap='';
+const QUESTS=[
+  {id:'cotton',em:'🌼',title:'种一次棉花',desc:'在任意空闲地块播种 1 次棉花',target:1,cur:()=>S.quest.cottonPlanted,rewardTxt:'🪙 200',reward:{type:'gold',amt:200}},
+  {id:'gold200',em:'🪙',title:'攒到 1000 金币',desc:'让金币余额达到 1000',target:1000,cur:()=>S.gold,rewardTxt:'🪙 30',reward:{type:'gold',amt:30}},
+  {id:'harvest20',em:'🧺',title:'收获 20 次作物',desc:'累计成功收获作物 20 次',target:20,cur:()=>S.stats.harvested,rewardTxt:'🪙 200',reward:{type:'gold',amt:200}},
+  {id:'deploySensor',em:'📟',title:'部署一台传感器',desc:'部署任一传感器（湿度/温度/光照…）',target:1,cur:()=>S.quest.deploySensor,rewardTxt:'🌽 玉米种子×1',reward:{type:'seed',kind:'corn',amt:1}},
+  {id:'deployNet',em:'📶',title:'部署网络设备',desc:'部署 WiFi 或 5G 覆盖模块',target:1,cur:()=>S.quest.deployNetwork,rewardTxt:'🪙 40',reward:{type:'gold',amt:40}},
+  {id:'deployActuator',em:'⚙️',title:'部署一台执行器',desc:'部署执行器（湿度/光照/通风…）',target:1,cur:()=>S.quest.deployActuator,rewardTxt:'💡 光照控制器',reward:{type:'hw',category:'actuator',kind:'growLight'}},
+  {id:'deployCtrl',em:'🧠',title:'部署智能控制器',desc:'部署 1 台智能控制器',target:1,cur:()=>S.quest.deployController,rewardTxt:'🚿 土壤湿度控制器',reward:{type:'hw',category:'actuator',kind:'moistCtl'}},
+  {id:'manual50',em:'💦',title:'手动劳作 50 次',desc:'浇水/排水/施肥/除虫累计 50 次',target:50,cur:()=>S.stats.manual,rewardTxt:'🪙 500',reward:{type:'gold',amt:500}},
+  {id:'buySeed15',em:'🎫',title:'购买 15 次种子',desc:'在商店购买任意种子累计 15 次',target:15,cur:()=>S.quest.seedBuyCount,rewardTxt:'🎫 8折券',reward:{type:'coupon',mult:0.8,title:'8折券'}},
+  {id:'harvest30',em:'🧺',title:'收获 30 茬庄稼',desc:'累计成功收获作物 30 茬',target:30,cur:()=>S.stats.harvested,rewardTxt:'🎫 7折券',reward:{type:'coupon',mult:0.7,title:'7折券'}},
+  {id:'deployAct3',em:'⚙️',title:'部署 3 台执行器',desc:'累计部署 3 台执行器（湿度/光照/通风…）',target:3,cur:()=>S.quest.deployActuator,rewardTxt:'🎫 6折券',reward:{type:'coupon',mult:0.6,title:'6折券'}},
+  {id:'claim7',em:'🏅',title:'完成 7 个任务',desc:'累计完成（领取奖励）7 个任务',target:7,cur:()=>QUESTS.filter(q=>q.claimed).length,rewardTxt:'🎫 5折券',reward:{type:'coupon',mult:0.5,title:'5折券'}},
+];
+function questComplete(q){ return q.cur()>=q.target; }
+function questSnapshot(){ return QUESTS.map(q=>(q.claimed?'1':'0')+':'+Math.min(q.cur(),q.target)).join('|'); }
+function refreshQuest(){
+  const snap=questSnapshot();
+  if(snap===questSnap) return;
+  for(const q of QUESTS){ if(!q.claimed&&!q._notified&&questComplete(q)){ q._notified=true; toast('🎯 任务完成：「'+q.title+'」，点右下角「领取奖励」！',3200); } }
+  questSnap=snap;
+  renderQuestPanel();
+}
+function renderQuestPanel(){
+  const p=$('questPanel'); if(!p) return;
+  const oldBody=p.querySelector('.qbody');
+  const savedScroll=oldBody?oldBody.scrollTop:0;
+  const claimed=QUESTS.filter(q=>q.claimed).length;
+  let body='';
+  for(const q of QUESTS){
+    const cur=Math.min(q.cur(),q.target);
+    const complete=questComplete(q);
+    const pct=Math.round(cur/q.target*100);
+    const progTxt=complete?'✅ 已完成':(cur+' / '+q.target);
+    let btn;
+    if(q.claimed) btn='<button class="qbtn claimed" disabled>已领取</button>';
+    else if(complete) btn='<button class="qbtn go" onclick="claimQuest(\''+q.id+'\')">领取奖励</button>';
+    else btn='<button class="qbtn" disabled>领取奖励</button>';
+    body+='<div class="qrow'+(complete?' comp':'')+'">'+
+      '<div class="qtop"><span class="qem">'+q.em+'</span><b>'+q.title+'</b><span class="qrew">'+q.rewardTxt+'</span></div>'+
+      '<div class="qdesc">'+q.desc+'</div>'+
+      '<div class="qbar"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="qfoot"><span class="qprog">'+progTxt+'</span>'+btn+'</div>'+
+    '</div>';
+  }
+  p.innerHTML='<div class="qhead" onclick="toggleQuestPanel()" title="点击收起/展开任务中心">🎯 任务中心 <span class="qcount">已领 '+claimed+'/'+QUESTS.length+'</span><span class="qtw">'+(questFolded?'展开 ▶':'收起 ▼')+'</span></div>'+
+    (questFolded?'':'<div class="qbody">'+body+'</div>');
+  if(!questFolded){
+    const nb=p.querySelector('.qbody');
+    if(nb) nb.scrollTop=savedScroll;
+  }
+}
+function toggleQuestPanel(){ questFolded=!questFolded; renderQuestPanel(); }
+function claimQuest(id){
+  const q=QUESTS.find(x=>x.id===id);
+  if(!q||q.claimed||!questComplete(q)) return;
+  q.claimed=true; q._notified=true;
+  const r=q.reward;
+  if(r.type==='gold') S.gold+=r.amt;
+  else if(r.type==='seed') S.inventory.seed[r.kind]=(S.inventory.seed[r.kind]||0)+r.amt;
+  else if(r.type==='hw') S.inventory.hw.push({uuid:'h'+S.devSeq++,kind:r.kind,category:r.category});
+  else if(r.type==='coupon') S.inventory.coupons.push({uid:'c'+S.devSeq++, mult:r.mult, title:r.title});
+  toast('🎁 已领取奖励：'+q.rewardTxt);
+  confetti();
+  refreshGold(); renderInventory(); renderSeeds(); renderCoupons(); renderQuestPanel();
+}
+
+/* ======================= 初始化 ======================= */
+function buildGrid(){
+  const farm=$('farm'); farm.innerHTML=''; cellEls=[];
+  for(let i=0;i<N;i++){
+    const el=document.createElement('div');
+    el.className='cell'; el.dataset.id=i;
+    el.innerHTML='<div class="cov"></div><div class="crop"></div><div class="stage-bar"><i></i></div><div class="devices"></div><div class="netdot"></div><div class="badge-ripe" title="点击收获">🧺</div><div class="pestmark"></div><div class="crack"></div>';
+    farm.appendChild(el); cellEls.push(el);
+  }
+  farm.addEventListener('click',e=>{
+    const el=e.target.closest('.cell'); if(!el) return;
+    const id=+el.dataset.id;
+    if(e.target.closest('.badge-ripe')){ harvestCell(id); return; }
+    onCellClick(id);
+  });
+}
+function buildTools(){
+  const g=$('toolsGrid'); g.innerHTML='';
+  for(const t of TOOLS){
+    const b=document.createElement('button');
+    b.className='tool-btn'; b.dataset.id=t.id;
+    b.innerHTML='<span class="em">'+t.emoji+'</span>'+t.name;
+    g.appendChild(b);
+  }
+  g.addEventListener('click',e=>{ const b=e.target.closest('.tool-btn'); if(!b) return; selectTool(b.dataset.id); });
+}
+function buildStars(){
+  const st=$('stars'); st.innerHTML='';
+  for(let i=0;i<42;i++){
+    const s=document.createElement('span'); s.className='star';
+    s.textContent='✦'; s.style.left=rand(0,100)+'%'; s.style.top=rand(0,60)+'%';
+    s.style.animationDelay=rand(0,3)+'s'; st.appendChild(s);
+  }
+}
+function init(){
+  S=freshState('free');
+  S.globals={isDay:true,light:0,airTemp:18,airHum:50};
+  S.selSeed=null; S.selCell=null; S.sel=null; S._lastGold=null;
+  buildGrid(); buildTools(); buildStars(); initRainPool();
+  renderShop(); renderInventory(); renderSeeds(); renderCoupons();
+  updateModeUI(); refreshSel(); refreshGold(); render(); renderTaskPanel();
+  wireEvents();
+  setTimeout(showWelcome, 500);
+}
+
+/* ======================= 商店 / 库存 / 交互 ======================= */
+let shopTab='seed';
+function shopItem(cat,kind, em, nm, cost, ds, params, orig){
+  const el=document.createElement('div'); el.className='shop-item';
+  const afford=S.gold>=cost;
+  const sale=(orig!==undefined && orig>cost);
+  el.innerHTML='<div class="em">'+em+'</div><div class="info"><div class="nm">'+nm+'</div><div class="ds">'+ds+'</div>'+(params?'<div class="params">'+params+'</div>':'')+'</div><div class="buy">'+(sale?'<div class="price sale">🪙 <s>'+orig+'</s><span class="now">'+cost+'</span></div>':'<div class="price">🪙 '+cost+'</div>')+'<button data-cat="'+cat+'" data-kind="'+kind+'" '+(afford?'':'disabled')+'>购买</button>'+(S.inventory.coupons.length?'<button class="cpn-use'+(afford?'':' no')+'" '+(afford?'':'disabled')+' onclick="openCpnPicker(\''+cat+'\',\''+kind+'\')">🎫 用券购买</button>':'')+'</div>';
+  return el;
+}
+function openShop(){
+  $('ovShop').classList.add('show');
+  if(S.running){ S._resumeAfterShop=true; stopRun(); toast('⏸ 模拟已暂停 — 关闭商店后自动继续'); }
+  renderShop();
+  TUT.shopOpened=true; taskHook();
+}
+function closeShop(){
+  $('ovShop').classList.remove('show');
+  const resume=S._resumeAfterShop; S._resumeAfterShop=false;
+  if(resume) startRun();
+}
+function renderShop(){
+  if(!$('ovShop').classList.contains('show')) return;
+  const modal=$('shopModal');
+  modal.innerHTML =
+    '<button class="close" onclick="closeShop()">×</button>'+
+    '<h3 style="display:flex;align-items:center;gap:10px">🛒 农资商店<span style="margin-left:auto;font-size:15px;color:#c88600">🪙 '+S.gold+'</span></h3>'+
+    ((S.market&&S.market.active)?'<div class="sale-banner">🔥 限时特惠 · 商店购入价 '+(S.market.mult*10)+' 折 · 剩 '+S.market.remain+' 刻</div>':'')+
+    '<div class="sub">用金币购买种子与物联网硬件 · 打开商店时模拟已自动暂停</div>'+
+    '<div class="shop-tabs" id="shopTabs">'+
+      '<button data-cat="seed" class="'+(shopTab==='seed'?'on':'')+'">🌱 种子</button>'+
+      '<button data-cat="sensor" class="'+(shopTab==='sensor'?'on':'')+'">📟 传感器</button>'+
+      '<button data-cat="network" class="'+(shopTab==='network'?'on':'')+'">📶 网络</button>'+
+      '<button data-cat="controller" class="'+(shopTab==='controller'?'on':'')+'">🧠 控制器</button>'+
+      '<button data-cat="actuator" class="'+(shopTab==='actuator'?'on':'')+'">⚙️ 执行器</button>'+
+    '</div>'+
+    '<div class="shop-grid" id="shopGrid"></div>'+
+    '<div style="text-align:right;margin-top:14px"><button class="btn-hdr" onclick="closeShop()">关闭商店 · 继续模拟</button></div>';
+  const list=$('shopGrid');
+  if(shopTab==='seed'){
+    const order=['wheat','corn','soybean','cotton','lettuce','tomato','strawberry'];
+    for(const k of order){ const c=CROPS[k];
+      list.appendChild(shopItem('seed',k, c.emoji, c.name+' <span class="tier-tag t'+c.tier+'">'+(c.tier===1?'初级':c.tier===2?'中级':'高级')+'</span>', discCost(c.seedCost), c.desc,
+        '温度 '+c.temp[0]+'~'+c.temp[1]+'℃ · 湿度 '+c.moist[0]+'~'+c.moist[1]+' · 光照 '+c.light[0]+'~'+c.light[1]+' · 肥力 '+c.fert[0]+'~'+c.fert[1]+' · PH '+c.ph[0]+'~'+c.ph[1]+' · 收益 '+c.value+'💰', c.seedCost)); }
+  } else if(shopTab==='sensor'){
+    for(const k in SENSORS){ const s=SENSORS[k]; list.appendChild(shopItem('sensor',k, s.emoji, s.name+' <span class="layer-tag layer-sense">感知层</span>', discCost(s.cost), s.desc, '', s.cost)); }
+  } else if(shopTab==='network'){
+    for(const k in NETWORKS){ const s=NETWORKS[k]; list.appendChild(shopItem('network',k, s.emoji, s.name+' <span class="layer-tag layer-net">网络层</span>', discCost(s.cost), s.desc, '覆盖半径 '+s.radius+' 格 · 部署后本局不可拆除', s.cost)); }
+  } else if(shopTab==='controller'){
+    const s=CONTROLLER; list.appendChild(shopItem('controller','controller', s.emoji, s.name+' <span class="layer-tag layer-ctrl">平台层</span>', discCost(s.cost), s.desc, '支持多条件复合判断、规则顺序执行', s.cost)); }
+  else if(shopTab==='actuator'){
+    for(const k in ACTUATORS){ const s=ACTUATORS[k]; list.appendChild(shopItem('actuator',k, s.emoji, s.name+' <span class="layer-tag layer-act">应用层</span>', discCost(s.cost), s.desc, '', s.cost)); }
+  }
+  $('shopTabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; shopTab=b.dataset.cat; renderShop(); });
+  list.addEventListener('click',e=>{ const b=e.target.closest('button[data-cat]'); if(b) buyItem(b.dataset.cat, b.dataset.kind); });
+}
+function renderInventory(){
+  const box=$('hwInventory'); box.innerHTML='';
+  const groups=[['sensor','传感器'],['network','网络设备'],['controller','控制器'],['actuator','执行器']];
+  let any=false;
+  for(const [cat,label] of groups){
+    const kinds={};
+    for(const it of S.inventory.hw) if(it.category===cat) kinds[it.kind]=(kinds[it.kind]||0)+1;
+    if(!Object.keys(kinds).length) continue; any=true;
+    const g=document.createElement('div'); g.className='hw-group';
+    let html='<div class="gname">'+label+'</div><div class="hw-chips">';
+    for(const k in kinds){
+      const meta = cat==='sensor'?SENSORS[k] : cat==='network'?NETWORKS[k] : cat==='controller'?CONTROLLER : ACTUATORS[k];
+      const sel = S.sel && S.sel.type==='hw' && S.sel.kind===k;
+      html+='<div class="chip'+(sel?' sel':'')+'" data-cat="'+cat+'" data-kind="'+k+'"><span class="em">'+meta.emoji+'</span>'+meta.name+'<span class="cnt">'+kinds[k]+'</span></div>';
+    }
+    g.innerHTML=html+'</div>'; box.appendChild(g);
+  }
+  if(!any) box.innerHTML='<div style="font-size:11px;color:var(--ink-soft)">暂无硬件，请打开「🛒 商店」购买</div>';
+}
+function renderSeeds(){
+  const box=$('seedChips'); box.innerHTML=''; let any=false;
+  for(const k in S.inventory.seed){
+    const n=S.inventory.seed[k]; if(n<=0) continue; any=true;
+    const c=CROPS[k]; const sel = S.sel && S.sel.type==='seed' && S.sel.crop===k;
+    const d=document.createElement('div'); d.className='chip'+(sel?' sel':''); d.dataset.kind=k;
+    d.innerHTML='<span class="em">'+c.emoji+'</span>'+c.name+'<span class="cnt">'+n+'</span>';
+    box.appendChild(d);
+  }
+  if(!any) box.innerHTML='<div style="font-size:11px;color:var(--ink-soft)">暂无种子，请打开「🛒 商店」购买</div>';
+}
+function refreshSel(){
+  document.querySelectorAll('#toolsGrid .tool-btn').forEach(b=>{
+    b.classList.toggle('sel', S.sel && S.sel.type==='tool' && b.dataset.id===S.sel.id);
+  });
+  let hint='未选择：点击地块可查看状态';
+  if(S.sel){
+    if(S.sel.type==='tool'){ const t=TOOLS.find(x=>x.id===S.sel.id); hint='🛠 '+t.name+' → 点击地块使用'; }
+    else if(S.sel.type==='seed'){ hint='🌱 '+CROPS[S.sel.crop].name+' 种子 → 点击空闲地块播种'; }
+    else if(S.sel.type==='hw'){ const meta=S.sel.category==='sensor'?SENSORS[S.sel.kind]:S.sel.category==='network'?NETWORKS[S.sel.kind]:S.sel.category==='controller'?CONTROLLER:ACTUATORS[S.sel.kind]; hint='📦 '+meta.name+' → 点击地块部署'; }
+  }
+  const sh=$('selHint'); if(sh) sh.textContent=hint;
+  renderSeeds(); renderInventory(); renderCoupons();
+}
+/* ======================= 打折券 ======================= */
+function itemMeta(cat,kind){
+  if(cat==='seed') return {base:CROPS[kind].seedCost, nm:CROPS[kind].name};
+  if(cat==='sensor') return {base:SENSORS[kind].cost, nm:SENSORS[kind].name};
+  if(cat==='network') return {base:NETWORKS[kind].cost, nm:NETWORKS[kind].name};
+  if(cat==='controller') return {base:CONTROLLER.cost, nm:CONTROLLER.name};
+  return {base:ACTUATORS[kind].cost, nm:ACTUATORS[kind].name};
+}
+function renderCoupons(){
+  const box=$('couponChips'); if(!box) return; box.innerHTML='';
+  const cps=S.inventory.coupons;
+  if(!cps.length){ box.innerHTML='<div style="font-size:11px;color:var(--ink-soft)">暂无打折券，去做任务获取吧 🎫</div>'; return; }
+  const g={};
+  for(const c of cps) g[c.title]=(g[c.title]||0)+1;
+  for(const t in g){ const d=document.createElement('div'); d.className='chip'; d.innerHTML='<span class="em">🎫</span>'+t+'<span class="cnt">'+g[t]+'</span>'; box.appendChild(d); }
+}
+function openCpnPicker(cat,kind){
+  const cps=S.inventory.coupons;
+  if(!cps.length){ toast('暂无打折券，去做任务获取吧'); return; }
+  const meta=itemMeta(cat,kind);
+  const rows=cps.map(c=>{
+    const ncost=Math.round(meta.base*c.mult);
+    const save=meta.base-ncost;
+    return '<div class="cpn-row"><div class="cr-info"><b>🎫 '+c.title+'</b><span>折后 🪙 '+ncost+'（省 '+save+'）</span></div><button onclick="buyWithCoupon(\''+cat+'\',\''+kind+'\',\''+c.uid+'\')">使用</button></div>';
+  }).join('');
+  $('cpnModal').innerHTML='<button class="close" onclick="closeCpn()">×</button><h3>🎫 使用打折券购买</h3>'+
+    '<div class="sub">'+meta.nm+' · 原价 🪙 '+meta.base+' · 选择一张券</div>'+
+    rows+'<div style="text-align:right;margin-top:12px"><button class="btn-hdr" onclick="closeCpn()">取消</button></div>';
+  $('ovCpn').classList.add('show');
+}
+function buyWithCoupon(cat,kind,uid){
+  const idx=S.inventory.coupons.findIndex(c=>c.uid===uid);
+  if(idx<0){ toast('该券不存在'); return; }
+  const cp=S.inventory.coupons[idx];
+  const meta=itemMeta(cat,kind);
+  const cost=Math.round(meta.base*cp.mult);
+  if(S.gold<cost){ toast('金币不足'); return; }
+  S.gold-=cost;
+  S.inventory.coupons.splice(idx,1);
+  if(cat==='seed'){ S.inventory.seed[kind]=(S.inventory.seed[kind]||0)+1; S.quest.seedBuyCount=(S.quest.seedBuyCount||0)+1; }
+  else S.inventory.hw.push({uuid:'h'+S.devSeq++, kind, category:cat});
+  if(cat==='seed') taskHook();
+  toast('🎫 已用 '+cp.title+' 购得 '+meta.nm+'，折后 🪙 '+cost);
+  closeCpn();
+  renderInventory(); renderSeeds(); renderCoupons(); refreshGold(); renderShop();
+}
+function closeCpn(){ $('ovCpn').classList.remove('show'); }
+
+function refreshGold(){ $('goldTxt').textContent=S.gold; $('leftGold').textContent='🪙 '+S.gold; renderShop(); refreshQuest(); }
+function updateSpeedUI(){
+  document.querySelectorAll('#speedToggle button').forEach(x=>{
+    x.classList.toggle('on',+x.dataset.speed===simSpeed);
+    x.classList.toggle('lock', S.mode==='challenge' && +x.dataset.speed>2);
+  });
+}
+function updateModeUI(){
+  $('modeName').textContent = S.mode==='challenge' ? '5分钟限时挑战' : '自由研学模式';
+  document.querySelectorAll('#modeToggle button').forEach(b=>b.classList.toggle('on', b.dataset.mode===S.mode));
+  $('cdRow').style.display = S.mode==='challenge' ? 'flex' : 'none';
+  if(S.mode==='challenge') $('cdTxt').textContent=fmtCD(S.timeLeft);
+  updateSpeedUI();
+}
+function setMode(mode){
+  if(S.mode!==mode){
+    const toChallenge=(mode==='challenge');
+    resetGame(mode);
+    if(toChallenge && simSpeed>2){ simSpeed=2; toast('⏱ 挑战模式限速 2×'); }
+    if(toChallenge && TUT.active && !TUT.folded){ TUT.folded=true; toast('⏱ 比赛模式下任务清单已收起，祝你拿高分！'); }
+    else if(!toChallenge && TUT.active && TUT.folded){ TUT.folded=false; }
+    renderTaskPanel(); focusTask();
+    toast(toChallenge ? '⏱ 已切换到「5分钟挑战」，点击「开启环境模拟」开始计时' : '🔬 已切换到「自由研学」模式');
+    taskHook();
+  }
+}
+function resetGame(mode){
+  stopRun();
+  if(S) S._resumeAfterShop=false;
+  closeController(); closeHelp(); closeReport(); closeChart(); closeShop(); closeGoldHack();
+  S=freshState(mode);
+  S.globals={isDay:true,light:0,airTemp:18,airHum:50};
+  S.selSeed=null; S.selCell=null; S.sel=null; S._lastGold=null;
+  QUESTS.forEach(q=>{ q.claimed=false; q._notified=false; }); questSnap='';
+  updateModeUI(); refreshSel(); refreshGold(); render(); renderTaskPanel();
+  updateRainVisual();
+}
+function selectTool(id){
+  S.sel = (S.sel && S.sel.type==='tool' && S.sel.id===id) ? null : {type:'tool',id};
+  if(S.sel){ const t=TOOLS.find(x=>x.id===id); toast('已选择 '+t.name+'，点击地块使用（右键取消）'); }
+  S.selCell=null; refreshSel(); render();
+}
+function onCellClick(id){
+  const cell=cellOf(id);
+  if(S.sel){
+    // 工具/种子/硬件选中态：只执行操作，不弹出信息面板
+    if(S.sel.type==='tool'){ S.selCell=null; applyTool(cell,S.sel.id); render(); return; }
+    if(S.sel.type==='seed'){ S.selCell=null; plant(cell,S.sel.crop); if(S.selSeed && S.inventory.seed[S.sel.crop]<=0) S.sel=null; refreshSel(); render(); return; }
+    if(S.sel.type==='hw'){ S.selCell=null; doDeploy(cell,S.sel); render(); return; }
+  }
+  S.selCell=(S.selCell===id)?null:id;
+  render();
+}
+function applyTool(cell,id){
+  S.stats.manual++;
+  switch(id){
+    case 'water': cell.moisture=clamp(cell.moisture+18,0,100); cell.cool=3; if(cell.moisture>88) S.stats.waste+=1; toast('💦 已浇水（手动·微降温）'); break;
+    case 'drain': cell.moisture=clamp(cell.moisture-22,0,100); toast('🕳️ 已排水松土（手动·降湿）'); break;
+    case 'fert': cell.fertility=clamp(cell.fertility+15,0,100); if(cell.fertility>92) S.stats.waste+=1; toast('🧂 已施肥（手动）'); break;
+    case 'pest': cell.pests=clamp(cell.pests-30,0,100); toast('🐞 已除虫（手动）'); break;
+  }
+  if(cell.deadCrop && cell.pests<45 && cell.ph>=5.5 && cell.ph<=8.5 && cell.moisture>=15 && cell.moisture<=88){ cell.deadCrop=null; toast('✅ 土壤已处理，可重新播种'); }
+}
+function plant(cell,cropType){
+  if(cell.crop){ toast('该地块已有作物'); return; }
+  if(cell.pests>60){ toast('⚠️ 病虫害过高，请先除虫'); return; }
+  if(cell.ph<5.5||cell.ph>8.5){ toast('⚠️ 土壤PH异常（盐碱化），停止施肥并等待自然恢复'); return; }
+  if(cell.moisture<10||cell.moisture>90){ toast('⚠️ 土壤湿度异常，请先调节'); return; }
+  if(!S.inventory.seed[cropType]||S.inventory.seed[cropType]<=0){ toast('种子不足，请到商店购买'); return; }
+  S.inventory.seed[cropType]--;
+  cell.crop={type:cropType,growth:0,health:100};
+  cell.deadCrop=null;
+  S.stats.planted++;
+  if(cropType==='cotton') S.quest.cottonPlanted++;
+  refreshQuest();
+  toast('🌱 已播种 '+CROPS[cropType].name);
+  taskHook();
+  renderSeeds(); render();
+}
+function quickPlant(id){
+  const cell=cellOf(id);
+  if(S.selSeed && S.inventory.seed[S.selSeed]>0){ plant(cell,S.selSeed); return; }
+  const any=Object.keys(S.inventory.seed).find(k=>S.inventory.seed[k]>0);
+  if(any) plant(cell,any); else toast('请先打开「🛒 商店」购买种子');
+}
+function harvestCore(cell){
+  if(!cell.crop || cell.crop.growth<100) return 0;
+  const cd=CROPS[cell.crop.type];
+  const nm=cd.name;
+  const yf=0.5+0.5*(cell.crop.health/100);
+  const val=Math.round(cd.value*yf);
+  S.gold+=val; S.stats.harvestValue+=val; S.stats.lossValue+=Math.round(cd.value*(1-yf)); S.stats.harvested++;
+  if(cell.devices.some(d=>d.category==='actuator'&&d.on)) S.stats.harvestAuto+=val; else S.stats.harvestManual+=val;
+  cell.crop=null;
+  taskHook();
+  return {val, nm};
+}
+function harvestCell(id){
+  const cell=cellOf(id);
+  const r=harvestCore(cell);
+  if(!r) return;
+  toast('🌾 收获 '+r.nm+'，+'+r.val+' 金币');
+  renderCellPanel(); refreshGold();
+}
+function harvestAll(){
+  let n=0, gold=0;
+  for(const cell of S.cells){
+    const r=harvestCore(cell);
+    if(r){ n++; gold+=r.val; }
+  }
+  if(!n){ toast('🧺 暂无成熟作物可收获'); return; }
+  toast('🧺 一键收获 '+n+' 茬，共 +'+gold+' 金币！',4000);
+  refreshGold(); render(); renderCellPanel();
+}
+function doDeploy(cell, sel){
+  const {kind,category}=sel;
+  if(cell.devices.some(x=>x.kind===kind)){ toast('该地块已部署同种设备（每种设备每格限一个）'); return; }
+  if(category==='network' && S.networks.some(n=>n.cellId===cell.id)){ toast('该地块已部署网络设备'); return; }
+  if(!S.inventory.hw.some(x=>x.kind===kind && x.category===category)){ toast('道具不足'); return; }
+  if(category==='network'){
+    S.networks.push({id:'n'+S.devSeq++, kind, cellId:cell.id, radius:NETWORKS[kind].radius});
+  } else {
+    const d=newDevice(kind,category,cell.id);
+    if(category==='controller'){ d.log=[]; d.cellCfg={}; }
+  }
+  const idx=S.inventory.hw.findIndex(x=>x.kind===kind && x.category===category);
+  S.inventory.hw.splice(idx,1);
+  const nm = category==='network'?NETWORKS[kind].name : category==='sensor'?SENSORS[kind].name : category==='controller'?CONTROLLER.name : ACTUATORS[kind].name;
+  toast('📦 已部署 '+nm);
+  if(!S.inventory.hw.some(x=>x.kind===kind && x.category===category)) S.sel=null;
+  if(category==='network') S.quest.deployNetwork++;
+  else if(category==='sensor') S.quest.deploySensor++;
+  else if(category==='controller') S.quest.deployController++;
+  else S.quest.deployActuator++;
+  refreshQuest();
+  taskHook();
+  refreshSel(); renderCellPanel();
+}
+function buyItem(cat,kind){
+  const base = cat==='seed'?CROPS[kind].seedCost : cat==='sensor'?SENSORS[kind].cost : cat==='network'?NETWORKS[kind].cost : cat==='controller'?CONTROLLER.cost : ACTUATORS[kind].cost;
+  const cost = discCost(base);
+  if(S.gold<cost){ toast('金币不足'); return; }
+  S.gold-=cost;
+  if(cat==='seed'){ S.inventory.seed[kind]=(S.inventory.seed[kind]||0)+1; S.quest.seedBuyCount=(S.quest.seedBuyCount||0)+1; }
+  else S.inventory.hw.push({uuid:'h'+S.devSeq++, kind, category:cat});
+  if(cat==='seed') taskHook();
+  toast('🛒 已购买');
+  renderInventory(); renderSeeds(); refreshGold();
+}
+function wireEvents(){
+  $('btnRun').onclick=()=> S.running?stopRun():startRun();
+  $('btnReset').onclick=()=>{ if(confirm('确定重置当前进度吗？所有作物、设备与金币将清空。')) resetGame(S.mode); };
+  $('btnHelp').onclick=()=>showHelp();
+  $('btnReport').onclick=()=>showReport(false);
+  $('btnChart').onclick=()=>openChart();
+  $('viewToggle').onclick=()=>{ showDevices=!showDevices; updateViewToggle(); render(); };
+  updateViewToggle();
+  document.querySelectorAll('#modeToggle button').forEach(b=> b.onclick=()=>setMode(b.dataset.mode));
+  document.querySelectorAll('#speedToggle button').forEach(b=>{
+    b.onclick=()=>{
+      const sp=+b.dataset.speed;
+      if(S.mode==='challenge' && sp>2){ toast('⏱ 挑战模式限速 2×，保证手动与自动公平比拼'); return; }
+      simSpeed=sp;
+      updateSpeedUI();
+      if(S.running){stopRun();startRun();}
+    };
+  });
+  $('btnShop').onclick=()=>openShop();
+  // 隐蔽测试入口：3秒内连点顶栏金币显示5次 → 弹出金币修改框（仅作者调试用，无任何界面痕迹）
+  let _gclk=0,_gtm=0;
+  $('goldTxt').parentElement.addEventListener('click',()=>{
+    const now=Date.now();
+    if(now-_gtm>3000) _gclk=0;
+    _gtm=now; _gclk++;
+    if(_gclk>=5){
+      _gclk=0;
+      showGoldHack();
+    }
+  });
+  window.addEventListener('resize',()=>{ focusTask(); });
+  $('seedChips').addEventListener('click',e=>{
+    const chip=e.target.closest('.chip'); if(!chip) return;
+    const k=chip.dataset.kind;
+    S.sel = (S.sel && S.sel.type==='seed' && S.sel.crop===k) ? null : {type:'seed',crop:k};
+    if(S.sel && S.sel.type==='seed'){ S.selSeed=k; toast('已选择 '+CROPS[k].name+' 种子，点击空闲地块播种（右键取消）'); }
+    else { toast('已取消选择种子'); }
+    S.selCell=null; refreshSel(); render();
+  });
+  $('hwInventory').addEventListener('click',e=>{
+    const chip=e.target.closest('.chip'); if(!chip) return;
+    const cat=chip.dataset.cat, kind=chip.dataset.kind;
+    S.sel = (S.sel && S.sel.type==='hw' && S.sel.kind===kind) ? null : {type:'hw',kind,category:cat};
+    if(S.sel && S.sel.type==='hw'){
+      const meta = cat==='sensor'?SENSORS[kind] : cat==='network'?NETWORKS[kind] : cat==='controller'?CONTROLLER : ACTUATORS[kind];
+      toast('已选择 '+meta.name+'，点击地块部署（右键取消）');
+    }
+    S.selCell=null; refreshSel(); render();
+  });
+  // 右键：取消当前选择 + 关闭信息面板
+  document.addEventListener('contextmenu',e=>{
+    const t=e.target;
+    if(t && (t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA')) return; // 输入框保留系统右键菜单
+    e.preventDefault();
+    let msg='';
+    if(S.sel){ S.sel=null; msg='已取消选择'; }
+    if(S.selCell!==null) S.selCell=null;
+    refreshSel(); render();
+    if(msg) toast(msg);
+  });
+}
+
+/* ======================= 控制器弹窗 ======================= */
+let ctrlId=null, ctrlCellId=null, ctrlCopying=false;
+function ctrl(){ return getDevice(ctrlId); }
+function openController(id){ ctrlId=id; const dd=getDevice(id); ctrlCellId=dd?dd.cellId:null; ctrlCopying=false; $('ovCtrl').classList.add('show'); renderControllerModal(); }
+function closeController(){ $('ovCtrl').classList.remove('show'); ctrlId=null; ctrlCellId=null; ctrlCopying=false; }
+function refreshCtrlModalLive(){
+  if(!ctrlId || !$('ovCtrl').classList.contains('show')) return;
+  const ae=document.activeElement;
+  if(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA')) return;
+  renderControllerModal();
+}
+/* ===== 🎯 目标控制：条件⇄传感器⇄执行器 严格一对一 ===== */
+const CTRL_DEFS=[
+  {metric:'moisture', label:'💧湿度', def:[60,20], low:[], high:[], both:['moistCtl']},
+  {metric:'fertility', label:'🧪肥力', def:[55,15], low:['fertPump'], high:[]},
+  {metric:'ph', label:'⚗️PH', def:[6.5,0.3], low:[], high:[], both:['phAdj']},
+  {metric:'soilTemp', label:'🌡️地温', def:[16,4], low:['soilHeat'], high:[]},
+  {metric:'airTemp', label:'💨气温', def:[22,4], low:[], high:['vent']},
+  {metric:'light', label:'☀️光照', def:[50,30], low:['growLight'], high:[]},
+  {metric:'pests', label:'🐛虫害', def:[10,15], low:[], high:['pestLamp']},
+];
+function coveredCells(netId){
+  const out=[];
+  for(const c of S.cells){ if(covNetworks(c.id).some(n=>n.id===netId)) out.push(c.id); }
+  return out;
+}
+function cropIdealMid(cell,metric){
+  const c=cell.crop?CROPS[cell.crop.type]:null;
+  if(metric==='moisture') return c?(c.moist[0]+c.moist[1])/2:60;
+  if(metric==='fertility') return c?(c.fert[0]+c.fert[1])/2:55;
+  if(metric==='ph') return c?(c.ph[0]+c.ph[1])/2:7;
+  if(metric==='soilTemp') return c?(c.temp[0]+c.temp[1])/2:18;
+  if(metric==='airTemp') return c?(c.temp[0]+c.temp[1])/2:22;
+  if(metric==='light') return c?(c.light[0]+c.light[1])/2:50;
+  if(metric==='pests') return 10;
+  return 0;
+}
+function pickCtrlCell(id){ ctrlCellId=id; ctrlCopying=false; renderControllerModal(); }
+function startCopyCfg(){ ctrlCopying=true; renderControllerModal(); }
+function applyCopyCfg(){
+  const d=ctrl(); if(!d) return;
+  if(!(d.cellCfg&&d.cellCfg[ctrlCellId])){ toast('请先「💾 保存本格设置」再复制'); return; }
+  const src=JSON.parse(JSON.stringify(d.cellCfg[ctrlCellId]));
+  let n=0;
+  document.querySelectorAll('.cbc:checked').forEach(cb=>{
+    d.cellCfg[+cb.value]=JSON.parse(JSON.stringify(src)); n++;
+  });
+  ctrlCopying=false;
+  toast(n?('📋 已复制设置到 '+n+' 个格子'):'未选择任何格子');
+  renderControllerModal();
+}
+function saveCellCfg(){
+  const d=ctrl(); if(!d||ctrlCellId===null) return;
+  d.cellCfg=d.cellCfg||{};
+  const cfgs={};
+  for(const def of CTRL_DEFS){
+    const on=$('tc_'+def.metric).checked;
+    const t=parseFloat($('tt_'+def.metric).value), w=parseFloat($('tw_'+def.metric).value);
+    cfgs[def.metric]={on:on, target:isNaN(t)?Math.round(cropIdealMid(S.cells[ctrlCellId],def.metric)):t, tol:isNaN(w)?def.def[1]:Math.abs(w)};
+  }
+  d.cellCfg[ctrlCellId]=cfgs;
+  ctrlLog(d,'【'+fmtClock(S.hour)+'】保存格('+S.cells[ctrlCellId].r+','+S.cells[ctrlCellId].c+')目标控制','i');
+  toast('💾 格('+S.cells[ctrlCellId].r+','+S.cells[ctrlCellId].c+')目标控制已保存');
+  taskHook();
+  renderControllerModal();
+}
+function renderControllerModal(){
+  const d=ctrl(); if(!d){ closeController(); return; }
+  const cell=cellOf(d.cellId);
+  const netId=deviceNetwork(d);
+  const sensors=S.devices.filter(x=>x.category==='sensor'&&deviceNetwork(x)===netId);
+  const actuators=S.devices.filter(x=>x.category==='actuator'&&deviceNetwork(x)===netId);
+  let faults='';
+  if(!netId){ faults='<div class="fault">❌ 网络缺失，通信失败 —— 请将控制器部署在WiFi/5G覆盖色块内</div>'; }
+  else {
+    if(!sensors.length) faults+='<div class="fault">⚠️ 没有可用传感器，无法运行控制逻辑</div>';
+    if(!actuators.length) faults+='<div class="fault">⚠️ 没有可用执行器，规则无法输出动作</div>';
+  }
+  let chipsHtml='';
+  if(netId){
+    const cov=coveredCells(netId);
+    if(cov.length){
+      for(const id of cov){
+        const c=S.cells[id];
+        chipsHtml+='<button class="cell-chip'+(ctrlCellId===id?' cur':'')+'" onclick="pickCtrlCell('+id+')">'+(c.crop?CROPS[c.crop.type].emoji:'▫️')+' '+c.r+','+c.c+'</button>';
+      }
+    } else chipsHtml='<span style="font-size:12px;color:var(--ink-soft)">网络覆盖内暂无格子</span>';
+  } else chipsHtml='<span style="font-size:12px;color:var(--danger)">无网络，无法列出格子</span>';
+  let panelHtml='';
+  if(netId&&ctrlCellId!==null){
+    const c=S.cells[ctrlCellId];
+    let cropLine;
+    if(c.crop){
+      const cd=CROPS[c.crop.type];
+      cropLine=cd.emoji+' <b>'+cd.name+'</b>（'+cropStage(c.crop.growth)+'）<span style="font-size:11px;color:var(--ink-soft)">适宜：温度'+cd.temp[0]+'~'+cd.temp[1]+'℃ · 湿度'+cd.moist[0]+'~'+cd.moist[1]+' · 光照'+cd.light[0]+'~'+cd.light[1]+' · 肥力'+cd.fert[0]+'~'+cd.fert[1]+' · PH'+cd.ph[0]+'~'+cd.ph[1]+'</span>';
+    } else cropLine='<span style="color:var(--ink-soft)">▫️ 空闲地块（未种植，目标值请手动填写）</span>';
+    let loops='';
+    for(const def of CTRL_DEFS){
+      const sen=c.devices.find(x=>x.category==='sensor'&&SENSORS[x.kind].metric===def.metric&&deviceNetwork(x)===netId);
+      const cellActs=c.devices.filter(x=>x.category==='actuator'&&deviceNetwork(x)===netId);
+      const namesOf=(ks)=>{ const r=[]; for(const k of ks){ if(cellActs.some(a=>a.kind===k)) r.push(ACTUATORS[k].emoji+ACTUATORS[k].name); } return r; };
+      const actNames=(def.both&&def.both.length)?namesOf(def.both):namesOf(def.low||[]).concat(namesOf(def.high||[]));
+      const cfg=(d.cellCfg&&d.cellCfg[ctrlCellId]&&d.cellCfg[ctrlCellId][def.metric])||null;
+      const tgt=cfg?cfg.target:Math.round(cropIdealMid(c,def.metric)*10)/10;
+      const tol=cfg?cfg.tol:def.def[1];
+      const step=(def.metric==='ph')?'0.1':'1';
+      loops+='<div class="loop-row">'+
+        '<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="tc_'+def.metric+'" '+((cfg&&cfg.on)?'checked':'')+'>'+def.label+'</label>'+
+        '目标<input type="number" id="tt_'+def.metric+'" step="'+step+'" value="'+tgt+'">±<input type="number" id="tw_'+def.metric+'" step="'+step+'" value="'+tol+'">'+
+        '<span class="loop-pair">'+(sen?(SENSORS[sen.kind].emoji+SENSORS[sen.kind].name+' 当前'+fmtMetric(def.metric,readSensor(sen))):'<span style="color:var(--danger)">✖无传感器</span>')+
+        ' ⇄ '+((actNames.length)?actNames.join(' / '):'<span style="color:var(--danger)">✖无执行器</span>')+'</span></div>';
+    }
+    let copyHtml='';
+    if(ctrlCopying){
+      const cov=coveredCells(netId).filter(id=>id!==ctrlCellId);
+      copyHtml='<div class="loop-row" style="background:#fbf6ea"><b>📋 复制到：</b>'+
+        cov.map(id=>{ const cc=S.cells[id]; return '<label style="display:flex;align-items:center;gap:3px;font-size:12px;margin-right:8px;cursor:pointer"><input type="checkbox" class="cbc" value="'+id+'" '+(cc.devices.length?'':'disabled')+'>'+cc.r+','+cc.c+(cc.crop?(' '+CROPS[cc.crop.type].emoji):'')+(cc.devices.length?'':'(无设备)')+'</label>'; }).join('')+
+        '<button class="btn" style="margin-left:auto" onclick="applyCopyCfg()">✅ 应用复制</button><button class="btn sec" onclick="ctrlCopying=false;renderControllerModal();">取消</button></div>';
+    }
+    panelHtml='<div style="font-size:13px;font-weight:700;margin-bottom:6px">📍 格('+c.r+','+c.c+')：'+cropLine+'</div>'+loops+
+      '<div class="cfg-actions">'+
+        '<button class="cfg-btn cfg-save" onclick="saveCellCfg()"><span class="em">💾</span>保存本格设置</button>'+
+        '<button class="cfg-btn cfg-copy" onclick="startCopyCfg()"><span class="em">📋</span>复制到其他格子</button>'+
+      '</div>'+
+      '<div style="font-size:10px;color:var(--ink-soft);margin:2px 0 6px;text-align:center">未勾选的指标不参与自动控制</div>'+copyHtml;
+  } else {
+    panelHtml='<div style="font-size:13px;color:var(--ink-soft);padding:6px 2px 10px">👆 请点击上方网络覆盖内的格子，为其配置「传感器 ⇄ 执行器」目标控制</div>';
+  }
+  const logHtml=(d.log&&d.log.length?d.log.slice().reverse().map(l=>'<div class="'+l.cls+'">'+l.msg+'</div>').join(''):'<div class="i">暂无运行日志</div>');
+  const netObj=nearestNet(d.cellId);
+  const netTxt=netObj?(netObj.kind==='wifi'?'📶 WiFi':'📡 5G'):'<span style="color:var(--danger)">无网络</span>';
+  $('ctrlModal').innerHTML =
+    '<button class="close" onclick="closeController()">×</button>'+
+    '<h3>🧠 智能控制器 配置</h3><div class="sub">位置 网格('+cell.r+','+cell.c+') · 网络：'+netTxt+' · 同网络：传感器 '+sensors.length+' 台 / 执行器 '+actuators.length+' 台</div>'+
+    faults+
+    '<div class="sec-h">🗺 网络覆盖格子（点击选择要配置的格子）</div>'+
+    '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'+chipsHtml+'</div>'+
+    '<div class="sec-h">🎯 分格目标控制（传感器 ⇄ 执行器 配对，目标值±波动自动维持）</div>'+panelHtml+
+    '<div class="sec-h">📜 运行日志</div><div class="logbox" id="logBox">'+logHtml+'</div>';
+}
+
+/* ======================= 帮助 / 报告 ======================= */
+function showHelp(){
+  $('helpModal').innerHTML =
+  '<button class="close" onclick="closeHelp()">×</button>'+
+  '<h3>❓ 使用帮助 · 物联网四层架构</h3><div class="sub">感知 → 传输 → 决策 → 执行</div>'+
+  '<div class="layers">'+
+  '<div class="layer-card" style="background:#4aa3df"><div class="lc-t">① 感知层</div><div class="lc-d">传感器采集环境信息（湿度/温度/光照/肥力/PH/病虫害）。传感器只读数据，不改变环境。</div></div>'+
+  '<div class="layer-card" style="background:#e07a3a"><div class="lc-t">② 网络层</div><div class="lc-d">WiFi/5G 传输数据。设备须落在同一网络覆盖色块内才能通信，跨网络不互通。</div></div>'+
+  '<div class="layer-card" style="background:#a66bc0"><div class="lc-t">③ 平台层</div><div class="lc-d">控制器为目标控制：为每格设定各指标的目标值与波动范围，自动判断是否越限。</div></div>'+
+  '<div class="layer-card" style="background:#3e9c50"><div class="lc-t">④ 应用层</div><div class="lc-d">执行器改变环境：湿度/肥力/光照/气温/地温/酸碱度/病虫害 七大控制器，仅接收同网络控制器指令。</div></div>'+
+  '</div>'+
+  '<div class="legend">'+
+  '<b>怎么玩：</b><br>'+
+  '1. 点「开启环境模拟」开始；顶栏切换「自由研学 / 5分钟挑战」模式（挑战=300个模拟刻，限速2×）。<br>'+
+  '2. 点右上角橙色「🛒 商店」大按钮打开商店（模拟自动暂停），用金币购买种子与物联网硬件。<br>'+
+  '3. 左侧选中种子 → 点击空闲地块播种；选手动工具 → 点击地块浇水/排水/施肥/除虫（工具态点击不会弹信息框）。<br>'+
+  '4. 部署传感器+网络+控制器+执行器在同一覆盖内，点控制器「配置」，选格子设定目标值与波动范围（可复制到其他格子）实现自动化。<br>'+
+  '5. 作物成熟后地块上出现 🧺 图标，直接点击即可收获；不选任何工具时点击地块可查看详细信息。<br>'+
+  '6. 鼠标右键：一键取消当前选择的工具/种子/硬件，并关闭信息面板。<br><br>'+
+  '<b>核心科学规律：</b><br>'+
+  '· 光照是生长能源：黑夜停止光合作用，光照控制器可延长光合。<br>'+
+  '· 四大胁迫：干旱/涝害、高低温、缺肥/肥害、病虫害。<br>'+
+  '· 水肥耦合：土壤太干，肥力再多也无法吸收。<br>'+
+  '· 过量施肥 → 盐碱化(PH超标) → 作物僵苗。土壤酸碱度控制器会按所种作物的适宜区间自动调节PH。<br>'+
+  '· 控制器「🎯 分格目标控制」：每个生长条件严格对应一种传感器和一种执行器，为各格设定目标值与波动范围，偏低自动补充、偏高自动排放，区间内保持。<br>'+
+  '· 高温高湿 → 病虫害爆发；通风可抑制。<br>'+
+  '· 降雨事件：随机触发降雨/暴雨，增加土壤湿度、降低温度、增加病虫害风险。<br>'+
+  '· 硬件齐全 ≠ 必胜：控制器阈值配置错误依然会种植失败。<br>'+
+  '</div>'+
+  '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap"><button class="btn-hdr" style="background:#fff" onclick="closeHelp();startGuide();">🎓 新手引导</button><button class="btn-hdr" onclick="closeHelp()">知道了</button></div>';
+  $('ovHelp').classList.add('show');
+}
+function closeHelp(){ $('ovHelp').classList.remove('show'); }
+/* ======================= function copyTxt(txt){
+  const done=()=>toast('📋 已复制：'+txt);
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done)); }
+  else fallbackCopy(txt,done);
+}
+function fallbackCopy(txt,done){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); done();
+  }catch(e){ toast('复制失败，请手动选择文本复制'); }
+}
+/* ===== 金币调试（隐蔽入口的密码验证弹窗） ===== */
+const GOLD_KEY=String.fromCharCode(99,104,97,110,103,101,99,111,105,110);
+function showGoldHack(){
+  const m=$('goldModal');
+  m.innerHTML='<button class="close" onclick="closeGoldHack()">×</button>'+
+  '<h3 style="text-align:center">🔐 身份验证</h3>'+
+  '<div class="sub" style="text-align:center">请输入管理密码</div>'+
+  '<input type="password" id="goldPwd" placeholder="••••••" autocomplete="off" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:15px;letter-spacing:3px;text-align:center;margin:6px 0 12px">'+
+  '<div style="display:flex;gap:8px;justify-content:center">'+
+  '<button class="btn-hdr primary" onclick="goldVerify()">验证</button>'+
+  '<button class="btn-hdr" onclick="closeGoldHack()">取消</button></div>';
+  $('ovGold').classList.add('show');
+  const inp=$('goldPwd'); inp.focus();
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') goldVerify(); });
+}
+function goldVerify(){
+  if($('goldPwd').value!==GOLD_KEY){ toast('❌ 密码错误'); $('goldPwd').value=''; $('goldPwd').focus(); return; }
+  const m=$('goldModal');
+  m.innerHTML='<button class="close" onclick="closeGoldHack()">×</button>'+
+  '<h3 style="text-align:center">💰 金币调试</h3>'+
+  '<div class="sub" style="text-align:center">当前金币：'+S.gold+'（不影响成绩统计）</div>'+
+  '<input type="number" id="goldVal" min="0" max="999999" value="'+S.gold+'" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:15px;text-align:center;margin:6px 0 12px">'+
+  '<div style="display:flex;gap:8px;justify-content:center">'+
+  '<button class="btn-hdr primary" onclick="goldApply()">确定</button>'+
+  '<button class="btn-hdr" onclick="closeGoldHack()">取消</button></div>';
+  const inp=$('goldVal'); inp.focus(); inp.select();
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') goldApply(); });
+}
+function goldApply(){
+  const n=parseInt($('goldVal').value,10);
+  if(isNaN(n)){ toast('请输入有效数字'); return; }
+  S.gold=Math.max(0,Math.min(999999,n));
+  closeGoldHack(); refreshGold(); render();
+}
+function closeGoldHack(){ $('ovGold').classList.remove('show'); }
+function closeReport(){ $('ovReport').classList.remove('show'); }
+function rep(t,n){ return '<div class="rs"><div class="n">'+n+'</div><div class="t">'+t+'</div></div>'; }
+function showReport(end){
+  stopRun();
+  closeController(); closeHelp();
+  const st=S.stats;
+  const wastePts=Math.round(st.waste);
+  const score=Math.max(0, st.harvestValue - st.lossValue - wastePts);
+  const title = end ? '⏰ 挑战结束！成绩报告' : '📊 数据化对比报告';
+  const modeTxt = S.mode==='challenge' ? '5分钟限时挑战' : '自由研学';
+  const stars = score>=800?'⭐⭐⭐⭐⭐':score>=500?'⭐⭐⭐⭐':score>=250?'⭐⭐⭐':score>=100?'⭐⭐':'⭐';
+  $('reportModal').innerHTML =
+   '<button class="close" onclick="closeReport()">×</button>'+
+   '<h3>'+title+'</h3><div class="sub">模式：'+modeTxt+' · 第'+S.day+'天 · 当前时刻 '+fmtClock(S.hour)+'</div>'+
+   '<div class="score-hero"><div class="n">'+score+'</div><div class="t">最终得分 = 总产量 − 损耗减产 − 资源浪费</div><div style="font-size:22px;margin-top:4px">'+stars+'</div></div>'+
+   '<div class="rep-stats">'+
+   rep('手动操作次数', st.manual)+rep('物联网自动执行次数', st.auto)+
+   rep('人工收获金币', st.harvestManual||0)+rep('物联网自动收获金币', st.harvestAuto||0)+
+   rep('总产量（金币）', st.harvestValue)+rep('损耗减产（金币）', st.lossValue)+
+   rep('作物播种总数', st.planted)+rep('死亡数量', st.dead)+
+   rep('成功收获数量', st.harvested)+rep('资源浪费（单位）', wastePts)+
+   '</div>'+
+   '<div style="font-size:12px;color:var(--ink-soft);line-height:1.7;border-top:1px dashed var(--line);padding-top:8px;">'+
+   '💡 <b>结论：</b>懂物联网组网与自动化配置的学生，通常能以更少的重复手动操作获得更高产量、更少损耗与浪费。硬件不等于必胜——阈值配置错误同样会减产、枯萎死亡。'+
+   '</div>'+
+   '<div style="text-align:right;margin-top:10px"><button class="btn-hdr" onclick="closeReport()">关闭</button></div>';
+  $('ovReport').classList.add('show');
+}
+
+/* ======================= 启动 ======================= */
+init();
+
+</script>
+</body>
+</html>
